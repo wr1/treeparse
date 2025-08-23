@@ -189,9 +189,6 @@ class cli(BaseModel):
                             kwargs["default"] = arg.default
                         elif arg.nargs == "?":
                             kwargs["default"] = None
-                        else:
-                            kwargs["nargs"] = "?"
-                            kwargs["default"] = None
                         child_parser.add_argument(arg.name, **kwargs)
                     child_parser.set_defaults(func=child.callback)
                 else:
