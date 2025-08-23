@@ -13,7 +13,7 @@ Intuitive CLI framework using argparse, rich, and pydantic.
 ## Installation
 
 ```bash
-uv pip install treeparse
+pip install treeparse
 ```
 
 Or with development dependencies:
@@ -28,34 +28,23 @@ uv pip install -e .[dev]
 ### Basic Example
 
 ```python
-from treeparse import cli, command, group, argument
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
+from treeparse import cli, command
 
 def hello():
     print("Hello, world!")
-
-def hello1(name: str):
-    print(f"Hello, {name}!")
 
 app = cli(
     name="basic.py",
     help="A basic CLI example.",
     commands=[
-        command(name="hello", help="Print hello world.", callback=hello, sort_key=-100)
-    ],
-    subgroups=[
-        group(
-            name="example",
-            help="An example group.",
-            commands=[
-                command(
-                    name="hello",
-                    help="Print hello world from the group.",
-                    callback=hello1,
-                    arguments=[
-                        argument(name="name", arg_type=str, sort_key=0),
-                    ],
-                )
-            ],
+        command(
+            name="hello",
+            help="Print hello world.",
+            callback=hello,
         )
     ],
 )
@@ -65,6 +54,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 ```
 
 Run with:
@@ -77,6 +67,10 @@ python examples/basic.py hello
 
 See `examples/demo.py` for a more complex CLI with groups, subcommands, arguments, and options.
 
+### List Demo Example
+
+See `examples/list_demo.py` for demonstration of list arguments (nargs='*') and list options (nargs='+').
+
 ## Development
 
 - Run tests: `uv run pytest -v`
@@ -86,6 +80,5 @@ See `examples/demo.py` for a more complex CLI with groups, subcommands, argument
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
 
 
