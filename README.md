@@ -1,13 +1,14 @@
 # Treeparse
 
-Intuitive CLI framework using argparse, rich, and pydantic.
+CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
+This yields a compact help view including the CLI's *structure*. 
 
 ## Features
 
 - Define CLI structure using Pydantic models for groups, commands, arguments, and options.
 - Automatic validation of callback parameters against CLI definitions.
 - Rich tree-based help output with optional type display.
-- Fast and transparent for LLMs with JSON help format (planned).
+- JSON help output.
 - Easily extensible and modular.
 
 ## Installation
@@ -28,10 +29,6 @@ uv pip install -e .[dev]
 ### Basic Example
 
 ```python
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
 from treeparse import cli, command
 
 def hello():

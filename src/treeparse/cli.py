@@ -7,7 +7,10 @@ from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
 from rich.syntax import Syntax
-from .models import group, command, option, color_config
+from .group import group
+from .command import command
+from .option import option
+from .color_config import color_config
 
 
 class RichArgumentParser(argparse.ArgumentParser):
@@ -80,13 +83,9 @@ class cli(BaseModel):
                 d["options"] = [
                     {
                         **opt.model_dump(exclude={"arg_type"}),
-                        "arg_type": opt.arg_type.__name__
-                        if not opt.is_flag
-                        else "bool",
+                        "arg_type": opt.arg_type.__name__ if not opt.is_flag else "bool",
                     }
-                    for opt in sorted(
-                        node.options, key=lambda x: (x.sort_key, x.flags[0])
-                    )
+                    for opt in sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
                 ]
             if isinstance(node, command):
                 d["type"] = "command"
@@ -96,24 +95,16 @@ class cli(BaseModel):
                         **arg.model_dump(exclude={"arg_type"}),
                         "arg_type": arg.arg_type.__name__,
                     }
-                    for arg in sorted(
-                        node.arguments, key=lambda x: (x.sort_key, x.name)
-                    )
+                    for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
                 ]
             elif isinstance(node, group):
                 d["type"] = "group"
             else:
                 d["type"] = "cli"
             if hasattr(node, "subgroups"):
-                d["subgroups"] = [
-                    recurse(g)
-                    for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))
-                ]
+                d["subgroups"] = [recurse(g) for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))]
             if hasattr(node, "commands"):
-                d["commands"] = [
-                    recurse(c)
-                    for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))
-                ]
+                d["commands"] = [recurse(c) for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))]
             return d
 
         return recurse(self)
@@ -135,10 +126,6 @@ class cli(BaseModel):
                 if opt.nargs is not None:
                     kwargs["nargs"] = opt.nargs
             parser.add_argument(*opt.flags, **kwargs)
-        parser.add_argument("--help", "-h", action="store_true")
-        parser.add_argument(
-            "--json", "-j", action="store_true", help="Output CLI structure as JSON"
-        )
         self._build_subparser(parser, self, 1, max_depth)
         return parser
 
@@ -171,13 +158,6 @@ class cli(BaseModel):
                         if opt.nargs is not None:
                             kwargs["nargs"] = opt.nargs
                     child_parser.add_argument(*opt.flags, **kwargs)
-                child_parser.add_argument("--help", "-h", action="store_true")
-                child_parser.add_argument(
-                    "--json",
-                    "-j",
-                    action="store_true",
-                    help="Output CLI structure as JSON",
-                )
                 if isinstance(child, command):
                     for arg in child.arguments:
                         kwargs = {"help": arg.help, "type": arg.arg_type}
@@ -210,14 +190,36 @@ class cli(BaseModel):
 
     def run(self):
         """Run the CLI."""
+        console = Console()
         try:
             parser = self.build_parser()
         except ValueError as e:
-            console = Console()
             console.print(str(e), markup=True)
             sys.exit(1)
+        # Handle special flags
+        argv = sys.argv[1:]
+        help_flags = ["--help", "-h"]
+        json_flags = ["--json", "-j"]
+        has_help = any(a in help_flags for a in argv)
+        has_json = any(a in json_flags for a in argv)
+        if has_help or has_json:
+            if has_json:
+                structure = self.structure_dict()
+                json_str = json.dumps(structure, indent=2)
+                syntax = Syntax(json_str, "json", theme="monokai", line_numbers=False)
+                console.print(syntax)
+            else:
+                path = []
+                for a in argv:
+                    if a in help_flags:
+                        break
+                    if not a.startswith("-"):
+                        path.append(a)
+                self.print_help(path)
+            sys.exit(0)
+        # Normal parsing
         try:
-            args, unknown = parser.parse_known_args()
+            args = parser.parse_args()
         except SystemExit:
             sys.exit(1)
         path = []
@@ -226,43 +228,29 @@ class cli(BaseModel):
             if cmd is None:
                 break
             path.append(cmd)
-        if getattr(args, "json", False) or "--json" in unknown or "-j" in unknown:
-            structure = self.structure_dict()
-            json_str = json.dumps(structure, indent=2)
-            console = Console()
-            syntax = Syntax(json_str, "json", theme="monokai", line_numbers=False)
-            console.print(syntax)
-            sys.exit(0)
-        elif (
-            getattr(args, "help", False)
-            or "--help" in unknown
-            or "-h" in unknown
-            or not hasattr(args, "func")
-        ):
+        if not hasattr(args, "func"):
             self.print_help(path)
             sys.exit(0)
-        else:
-            args = parser.parse_args()
-            current = self._get_node_from_path(path)
-            missing = []
-            for arg in current.arguments:
-                dest = arg.dest or arg.name
-                if (
-                    arg.nargs is None
-                    and arg.default is None
-                    and getattr(args, dest, None) is None
-                ):
-                    missing.append(arg.name)
-            if missing:
-                parser.error(
-                    "the following arguments are required: " + ", ".join(missing)
-                )
-            arg_dict = {
-                k: v
-                for k, v in vars(args).items()
-                if not k.startswith("command_") and k not in ("func", "help", "json")
-            }
-            args.func(**arg_dict)
+        current = self._get_node_from_path(path)
+        missing = []
+        for arg in current.arguments:
+            dest = arg.dest or arg.name
+            if (
+                arg.nargs is None
+                and arg.default is None
+                and getattr(args, dest, None) is None
+            ):
+                missing.append(arg.name)
+        if missing:
+            parser.error(
+                "the following arguments are required: " + ", ".join(missing)
+            )
+        arg_dict = {
+            k: v
+            for k, v in vars(args).items()
+            if not k.startswith("command_") and k not in ("func",)
+        }
+        args.func(**arg_dict)
 
     def print_help(self, path: List[str]):
         """Print custom tree help."""
@@ -364,7 +352,9 @@ class cli(BaseModel):
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
         style = "dim " + self.colors.app if is_ancestor else self.colors.app
         help_style = (
-            "dim " + self.colors.normal_help if is_ancestor else self.colors.normal_help
+            "dim " + self.colors.normal_help
+            if is_ancestor
+            else self.colors.normal_help
         )
         label = Text()
         label.append(self.name, style=style)
@@ -391,7 +381,9 @@ class cli(BaseModel):
         is_ancestor: bool,
     ) -> Text:
         base_help_style = (
-            self.colors.requested_help if on_path else self.colors.normal_help
+            self.colors.requested_help
+            if on_path
+            else self.colors.normal_help
         )
         help_style = "dim " + base_help_style if is_ancestor else base_help_style
         name_style = (
@@ -404,7 +396,9 @@ class cli(BaseModel):
             else self.colors.command
         )
         arg_style = (
-            "dim " + self.colors.argument if is_ancestor else self.colors.argument
+            "dim " + self.colors.argument
+            if is_ancestor
+            else self.colors.argument
         )
         label = Text()
         if isinstance(node, group):
@@ -440,10 +434,14 @@ class cli(BaseModel):
         self, opt: option, max_start: int, depth: int, is_ancestor: bool
     ) -> Text:
         option_style = (
-            "dim " + self.colors.option if is_ancestor else self.colors.option
+            "dim " + self.colors.option
+            if is_ancestor
+            else self.colors.option
         )
         option_help_style = (
-            "dim " + self.colors.option_help if is_ancestor else self.colors.option_help
+            "dim " + self.colors.option_help
+            if is_ancestor
+            else self.colors.option_help
         )
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
@@ -521,3 +519,4 @@ class cli(BaseModel):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
+

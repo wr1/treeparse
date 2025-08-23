@@ -1,6 +1,6 @@
 import pytest
 from typing import List
-from treeparse.models import argument, option, command, group
+from treeparse import argument, option, command, group
 
 
 def test_argument_model():
