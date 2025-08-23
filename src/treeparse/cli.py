@@ -126,7 +126,6 @@ class Cli(BaseModel):
         if getattr(args, "help", False) or not hasattr(args, "func"):
             self.print_help(path)
         else:
-            # Extract relevant args, excluding internal ones
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
@@ -158,37 +157,28 @@ class Cli(BaseModel):
             f"[{self.color_config.requested_help}]Description: {current.help}[/{self.color_config.requested_help}]"
         )
         console.print("Commands:")
-        align_width = self._compute_max_name_length(path)
-        root_label = self._get_root_label(align_width)
-        tree = Tree(root_label)
-        self._add_children(tree, self, True, path, align_width)
-        console.print(tree)
+        max_start = 0
 
-    def _compute_max_name_length(self, path: List[str]) -> int:
-        """Compute maximum name length for alignment in the visible tree."""
-        max_len = 0
-        current = self
-        for p in path:
-            current = next(
-                c
-                for c in (
-                    current.subgroups + current.commands
-                    if hasattr(current, "subgroups")
-                    else []
-                )
-                if c.name == p
-            )
-
-        def recurse(
-            node: Union["Cli", Group, Command], on_path: bool, remaining_path: List[str]
+        def collect_recurse(
+            node: Union["Cli", Group, Command],
+            on_path: bool,
+            remaining_path: List[str],
+            depth: int,
         ):
-            nonlocal max_len
-            if not isinstance(node, Cli):
-                opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-                for opt in opts:
-                    flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                    opt_name = ", ".join(flags)
-                    max_len = max(max_len, len(opt_name))
+            nonlocal max_start
+            if isinstance(node, Cli):
+                name_len = len(node.name)
+            else:
+                name_len = len(self._get_name_part(node))
+            prefix_len = depth * 4  # Assuming 4 chars per level
+            max_start = max(max_start, prefix_len + name_len)
+            opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+            for opt in opts:
+                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
+                opt_name = ", ".join(flags)
+                opt_len = len(opt_name)
+                opt_prefix = (depth + 1) * 4
+                max_start = max(max_start, opt_prefix + opt_len)
             if isinstance(node, Command):
                 return
             children = sorted(
@@ -199,19 +189,17 @@ class Cli(BaseModel):
                 next_name = remaining_path[0]
                 for child in children:
                     if child.name == next_name:
-                        name_part = self._get_name_part(child)
-                        max_len = max(max_len, len(name_part))
-                        recurse(child, True, remaining_path[1:])
+                        collect_recurse(child, True, remaining_path[1:], depth + 1)
                         break
             else:
                 for child in children:
-                    name_part = self._get_name_part(child)
-                    max_len = max(max_len, len(name_part))
-                    recurse(child, False, [])
+                    collect_recurse(child, False, [], depth + 1)
 
-        recurse(self, True, path)  # Start from root
-        max_len = max(max_len, len(self.name))
-        return max_len
+        collect_recurse(self, True, path, 0)
+        root_label = self._get_root_label(max_start, 0)
+        tree = Tree(root_label)
+        self._add_children(tree, self, True, path, max_start, 0)
+        console.print(tree)
 
     def _get_name_part(self, node: Union[Group, Command]) -> str:
         if isinstance(node, Group):
@@ -222,20 +210,48 @@ class Cli(BaseModel):
         )
         return f"{node.name} {args_str}".rstrip()
 
-    def _get_root_label(self, align_width: int) -> Text:
+    def _wrap_help(self, help: str, width: int) -> List[str]:
+        if width <= 0:
+            width = 20
+        lines = []
+        current = []
+        current_len = 0
+        words = help.split()
+        for word in words:
+            word_len = len(word)
+            if current and current_len + 1 + word_len > width:
+                lines.append(" ".join(current))
+                current = [word]
+                current_len = word_len
+            else:
+                if current:
+                    current_len += 1
+                current.append(word)
+                current_len += word_len
+        if current:
+            lines.append(" ".join(current))
+        return lines
+
+    def _get_root_label(self, max_start: int, depth: int) -> Text:
         label = Text()
         label.append(self.name, style=self.color_config.app)
-        name_len = label.cell_len
-        padding = align_width - name_len
-        if padding > 0:
-            label.append(" " * padding)
+        name_len = len(self.name)
+        prefix_len = depth * 4
+        padding = max_start - prefix_len - name_len
+        label.append(" " * padding)
         if self.help:
-            label.append(" ")
-            label.append(self.help, style=self.color_config.normal_help)
+            help_start = max_start + 1
+            available = self.max_width - help_start
+            help_lines = self._wrap_help(self.help, available)
+            label.append(" " + help_lines[0], style=self.color_config.normal_help)
+            for hl in help_lines[1:]:
+                label.append("\n")
+                label.append(" " * help_start)
+                label.append(hl, style=self.color_config.normal_help)
         return label
 
     def _get_label(
-        self, node: Union[Group, Command], align_width: int, on_path: bool
+        self, node: Union[Group, Command], max_start: int, on_path: bool, depth: int
     ) -> Text:
         help_style = (
             self.color_config.requested_help
@@ -245,32 +261,45 @@ class Cli(BaseModel):
         label = Text()
         if isinstance(node, Group):
             label.append(node.name, style=self.color_config.group)
+            name_len = len(node.name)
         else:
             label.append(node.name, style=self.color_config.command)
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
                 label.append(" ")
                 label.append(f"[{arg.name.upper()}]", style=self.color_config.argument)
-        name_len = label.cell_len
-        padding = align_width - name_len
-        if padding > 0:
-            label.append(" " * padding)
+            name_len = label.cell_len
+        prefix_len = depth * 4
+        padding = max_start - prefix_len - name_len
+        label.append(" " * padding)
         if node.help:
-            label.append(" ")
-            label.append(node.help, style=help_style)
+            help_start = max_start + 1
+            available = self.max_width - help_start
+            help_lines = self._wrap_help(node.help, available)
+            label.append(" " + help_lines[0], style=help_style)
+            for hl in help_lines[1:]:
+                label.append("\n")
+                label.append(" " * help_start)
+                label.append(hl, style=help_style)
         return label
 
-    def _get_option_label(self, opt: Option, align_width: int) -> Text:
+    def _get_option_label(self, opt: Option, max_start: int, depth: int) -> Text:
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
         flags_str = ", ".join(flags)
         label.append(flags_str, style=self.color_config.option)
-        name_len = label.cell_len
-        padding = align_width - name_len
-        if padding > 0:
-            label.append(" " * padding)
+        name_len = len(flags_str)
+        prefix_len = depth * 4
+        padding = max_start - prefix_len - name_len
+        label.append(" " * padding)
         if opt.help:
-            label.append("    ")
-            label.append(opt.help, style=self.color_config.option_help)
+            help_start = max_start + 1
+            available = self.max_width - help_start
+            help_lines = self._wrap_help(opt.help, available)
+            label.append(" " + help_lines[0], style=self.color_config.option_help)
+            for hl in help_lines[1:]:
+                label.append("\n")
+                label.append(" " * help_start)
+                label.append(hl, style=self.color_config.option_help)
         return label
 
     def _add_children(
@@ -279,12 +308,13 @@ class Cli(BaseModel):
         node: Union["Cli", Group, Command],
         on_path: bool,
         remaining_path: List[str],
-        align_width: int,
+        max_start: int,
+        depth: int,
     ):
         if not isinstance(node, Cli):
             opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
             for opt in opts:
-                opt_label = self._get_option_label(opt, align_width)
+                opt_label = self._get_option_label(opt, max_start, depth + 1)
                 current_tree.add(opt_label)
         if isinstance(node, Command):
             return
@@ -296,14 +326,19 @@ class Cli(BaseModel):
             next_name = remaining_path[0]
             for child in children:
                 if child.name == next_name:
-                    child_label = self._get_label(child, align_width, True)
+                    child_label = self._get_label(child, max_start, True, depth + 1)
                     child_tree = current_tree.add(child_label)
                     self._add_children(
-                        child_tree, child, True, remaining_path[1:], align_width
+                        child_tree,
+                        child,
+                        True,
+                        remaining_path[1:],
+                        max_start,
+                        depth + 1,
                     )
                     break
         else:
             for child in children:
-                child_label = self._get_label(child, align_width, False)
+                child_label = self._get_label(child, max_start, False, depth + 1)
                 child_tree = current_tree.add(child_label)
-                self._add_children(child_tree, child, False, [], align_width)
+                self._add_children(child_tree, child, False, [], max_start, depth + 1)
