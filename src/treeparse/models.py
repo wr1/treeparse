@@ -1,6 +1,6 @@
 from typing import List, Optional, Callable, Any, Union
+import inspect
 from pydantic import BaseModel
-import argparse
 
 
 class Argument(BaseModel):
@@ -32,10 +32,27 @@ class Command(BaseModel):
 
     name: str
     help: str = ""
-    callback: Callable[[argparse.Namespace], None]
+    callback: Callable[..., None]
     arguments: List[Argument] = []
     options: List[Option] = []
     sort_key: int = 0
+
+    def validate(self):
+        """Validate that callback parameters match defined arguments and options."""
+        sig = inspect.signature(self.callback)
+        param_names = set(sig.parameters.keys())
+        provided = set()
+        for arg in self.arguments:
+            dest = arg.dest or arg.name
+            provided.add(dest)
+        for opt in self.options:
+            dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
+            provided.add(dest)
+        if param_names != provided:
+            raise ValueError(
+                f"Callback parameters {param_names} do not match provided args/options "
+                f"{provided} for command {self.name}"
+            )
 
 
 class Group(BaseModel):
