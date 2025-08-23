@@ -12,4 +12,3 @@ class argument(BaseModel):
     nargs: Union[int, str, None] = None
     default: Any = None
     sort_key: int = 0
-

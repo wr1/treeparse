@@ -13,4 +13,3 @@ class option(BaseModel):
     nargs: Union[int, str, None] = None
     is_flag: bool = False
     sort_key: int = 0
-

@@ -53,6 +53,7 @@ app = cli(
     help="This CLI provides commands to handle various tasks with subcommands for specific actions.",
     max_width=135,
     show_types=True,
+    show_defaults=True,
 )
 
 info_cmd = command(
@@ -117,14 +118,17 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
+            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of ",
+            # the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
             arg_type=int,
             sort_key=0,
+            default=2,
         ),
         option(
             flags=["--reason", "-r"],
             dest="reason_option",
             help="Reason for setting the role",
+            default="reason 1 and 2",
             arg_type=str,
             sort_key=1,
         ),
