@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Union
+from typing import Callable, List
 import inspect
 from pydantic import BaseModel
 from .argument import argument
@@ -64,4 +64,3 @@ class command(BaseModel):
                 + "; ".join(type_mismatches)
             )
             raise ValueError(error_msg)
-
