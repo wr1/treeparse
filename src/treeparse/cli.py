@@ -482,20 +482,19 @@ class cli(BaseModel):
         if opt.help:
             label.append(" ")
             help_lines = self._wrap_help(opt.help, self.max_width - (max_start + 1))
-            if help_lines:
-                label.append(help_lines[0], style=option_help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=option_help_style)
         if self.show_defaults and opt.default is not None:
             default_str = f" (default: {opt.default})"
             if help_lines:
-                label.append("\n")
-                label.append(" " * (name_len + padding + 1))
+                help_lines[-1] += default_str
             else:
                 label.append(" ")
-            label.append(default_str, style=default_style)
+                help_lines = [default_str]
+        if help_lines:
+            label.append(help_lines[0], style=option_help_style)
+            for hl in help_lines[1:]:
+                label.append("\n")
+                label.append(" " * (name_len + padding + 1))
+                label.append(hl, style=option_help_style)
         return label
 
     def _add_children(
