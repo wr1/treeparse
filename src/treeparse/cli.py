@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
-from .models import Group, Command, Option, ColorConfig
+from .models import group, command, option, color_config
 
 
 class RichArgumentParser(argparse.ArgumentParser):
@@ -27,23 +27,23 @@ class RichArgumentParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-class Cli(BaseModel):
+class cli(BaseModel):
     """CLI model with methods."""
 
     name: str
     help: str = ""
-    subgroups: List[Group] = []
-    commands: List[Command] = []
-    options: List[Option] = []
+    subgroups: List[group] = []
+    commands: List[command] = []
+    options: List[option] = []
     max_width: int = 120
-    color_config: ColorConfig = ColorConfig()
+    colors: color_config = color_config()
     show_types: bool = False
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
 
-        def recurse(node: Union["Cli", Group, Command]) -> int:
-            if isinstance(node, Command):
+        def recurse(node: Union["cli", group, command]) -> int:
+            if isinstance(node, command):
                 return 0
             children = (
                 node.subgroups + node.commands if hasattr(node, "subgroups") else []
@@ -54,9 +54,9 @@ class Cli(BaseModel):
 
         return recurse(self)
 
-    def _get_node_from_path(self, path: List[str]) -> Union[Group, Command, "Cli"]:
+    def _get_node_from_path(self, path: List[str]) -> Union[group, command, "cli"]:
         """Get node from path."""
-        current: Union["Cli", Group, Command] = self
+        current: Union["cli", group, command] = self
         for p in path:
             if not hasattr(current, "subgroups"):
                 raise ValueError(f"Path not found: {path}")
@@ -89,7 +89,7 @@ class Cli(BaseModel):
     def _build_subparser(
         self,
         parent_parser: argparse.ArgumentParser,
-        node: Union["Cli", Group],
+        node: Union["cli", group],
         depth: int,
         max_depth: int,
     ):
@@ -114,7 +114,7 @@ class Cli(BaseModel):
                         kwargs["type"] = opt.arg_type
                     child_parser.add_argument(*opt.flags, **kwargs)
                 child_parser.add_argument("--help", "-h", action="store_true")
-                if isinstance(child, Command):
+                if isinstance(child, command):
                     for arg in child.arguments:
                         kwargs = {"help": arg.help, "type": arg.arg_type}
                         if arg.dest is not None:
@@ -136,8 +136,8 @@ class Cli(BaseModel):
     def _validate(self):
         """Validate all commands in the CLI structure."""
 
-        def recurse(node: Union["Cli", Group, Command]):
-            if isinstance(node, Command):
+        def recurse(node: Union["cli", group, command]):
+            if isinstance(node, command):
                 node.validate()
             else:
                 for cmd in node.commands:
@@ -206,25 +206,25 @@ class Cli(BaseModel):
         console.print(usage)
         current = self._get_node_from_path(path)
         console.print(
-            f"[{self.color_config.requested_help}]Description: {current.help}[/{self.color_config.requested_help}]"
+            f"[{self.colors.requested_help}]Description: {current.help}[/{self.colors.requested_help}]"
         )
         console.print("Commands:")
         max_start = 0
 
         def collect_recurse(
-            node: Union["Cli", Group, Command],
+            node: Union["cli", group, command],
             on_path: bool,
             remaining_path: List[str],
             depth: int,
         ):
             nonlocal max_start
-            if isinstance(node, Cli):
+            if isinstance(node, cli):
                 name_len = len(node.name)
             else:
                 name_len = len(self._get_name_part(node))
             prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
-            if not isinstance(node, Cli):
+            if not isinstance(node, cli):
                 opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
                 for opt in opts:
                     flags = sorted(opt.flags, key=lambda f: (-len(f), f))
@@ -235,7 +235,7 @@ class Cli(BaseModel):
                         opt_len += len(f":{type_name}")
                     opt_prefix = (depth + 1) * 4
                     max_start = max(max_start, opt_prefix + opt_len)
-            if isinstance(node, Command):
+            if isinstance(node, command):
                 return
             children = sorted(
                 (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
@@ -258,8 +258,8 @@ class Cli(BaseModel):
         self._add_children(tree, self, True, path, max_start, 0, selected_depth)
         console.print(tree)
 
-    def _get_name_part(self, node: Union[Group, Command]) -> str:
-        if isinstance(node, Group):
+    def _get_name_part(self, node: Union[group, command]) -> str:
+        if isinstance(node, group):
             return node.name
         args_parts = []
         for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
@@ -294,11 +294,9 @@ class Cli(BaseModel):
         return lines
 
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
-        style = "dim " + self.color_config.app if is_ancestor else self.color_config.app
+        style = "dim " + self.colors.app if is_ancestor else self.colors.app
         help_style = (
-            "dim " + self.color_config.normal_help
-            if is_ancestor
-            else self.color_config.normal_help
+            "dim " + self.colors.normal_help if is_ancestor else self.colors.normal_help
         )
         label = Text()
         label.append(self.name, style=style)
@@ -318,34 +316,30 @@ class Cli(BaseModel):
 
     def _get_label(
         self,
-        node: Union[Group, Command],
+        node: Union[group, command],
         max_start: int,
         on_path: bool,
         depth: int,
         is_ancestor: bool,
     ) -> Text:
         base_help_style = (
-            self.color_config.requested_help
-            if on_path
-            else self.color_config.normal_help
+            self.colors.requested_help if on_path else self.colors.normal_help
         )
         help_style = "dim " + base_help_style if is_ancestor else base_help_style
         name_style = (
-            "dim " + self.color_config.group
-            if is_ancestor and isinstance(node, Group)
-            else self.color_config.group
-            if isinstance(node, Group)
-            else "dim " + self.color_config.command
+            "dim " + self.colors.group
+            if is_ancestor and isinstance(node, group)
+            else self.colors.group
+            if isinstance(node, group)
+            else "dim " + self.colors.command
             if is_ancestor
-            else self.color_config.command
+            else self.colors.command
         )
         arg_style = (
-            "dim " + self.color_config.argument
-            if is_ancestor
-            else self.color_config.argument
+            "dim " + self.colors.argument if is_ancestor else self.colors.argument
         )
         label = Text()
-        if isinstance(node, Group):
+        if isinstance(node, group):
             label.append(node.name, style=name_style)
             name_len = len(node.name)
         else:
@@ -356,7 +350,7 @@ class Cli(BaseModel):
                 if self.show_types:
                     label.append(
                         Text.from_markup(
-                            f",[{self.color_config.type_color}]{arg.arg_type.__name__}[/{self.color_config.type_color}]"
+                            f",[{self.colors.type_color}]{arg.arg_type.__name__}[/{self.colors.type_color}]"
                         )
                     )
                 label.append("]", style=arg_style)
@@ -375,17 +369,13 @@ class Cli(BaseModel):
         return label
 
     def _get_option_label(
-        self, opt: Option, max_start: int, depth: int, is_ancestor: bool
+        self, opt: option, max_start: int, depth: int, is_ancestor: bool
     ) -> Text:
         option_style = (
-            "dim " + self.color_config.option
-            if is_ancestor
-            else self.color_config.option
+            "dim " + self.colors.option if is_ancestor else self.colors.option
         )
         option_help_style = (
-            "dim " + self.color_config.option_help
-            if is_ancestor
-            else self.color_config.option_help
+            "dim " + self.colors.option_help if is_ancestor else self.colors.option_help
         )
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
@@ -396,7 +386,7 @@ class Cli(BaseModel):
             type_name = "bool" if opt.is_flag else opt.arg_type.__name__
             label.append(
                 Text.from_markup(
-                    f": [{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}]"
+                    f": [{self.colors.type_color}]{type_name}[/{self.colors.type_color}]"
                 )
             )
             name_len = label.cell_len
@@ -416,7 +406,7 @@ class Cli(BaseModel):
     def _add_children(
         self,
         current_tree: Tree,
-        node: Union["Cli", Group, Command],
+        node: Union["cli", group, command],
         on_path: bool,
         remaining_path: List[str],
         max_start: int,
@@ -424,14 +414,14 @@ class Cli(BaseModel):
         selected_depth: int,
     ):
         is_ancestor = depth < selected_depth
-        if not isinstance(node, Cli):
+        if not isinstance(node, cli):
             opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
             for opt in opts:
                 opt_label = self._get_option_label(
                     opt, max_start, depth + 1, is_ancestor
                 )
                 current_tree.add(opt_label)
-        if isinstance(node, Command):
+        if isinstance(node, command):
             return
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],

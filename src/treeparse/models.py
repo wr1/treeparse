@@ -3,7 +3,7 @@ import inspect
 from pydantic import BaseModel
 
 
-class Argument(BaseModel):
+class argument(BaseModel):
     """Positional argument model."""
 
     name: str
@@ -15,8 +15,8 @@ class Argument(BaseModel):
     sort_key: int = 0
 
 
-class Option(BaseModel):
-    """Option model."""
+class option(BaseModel):
+    """option model."""
 
     flags: List[str]
     dest: Optional[str] = None
@@ -27,14 +27,14 @@ class Option(BaseModel):
     sort_key: int = 0
 
 
-class Command(BaseModel):
-    """Command model."""
+class command(BaseModel):
+    """command model."""
 
     name: str
     help: str = ""
     callback: Callable[..., None]
-    arguments: List[Argument] = []
-    options: List[Option] = []
+    arguments: List[argument] = []
+    options: List[option] = []
     sort_key: int = 0
 
     def validate(self):
@@ -82,18 +82,18 @@ class Command(BaseModel):
             raise ValueError(error_msg)
 
 
-class Group(BaseModel):
-    """Group model."""
+class group(BaseModel):
+    """group model."""
 
     name: str
     help: str = ""
-    subgroups: List["Group"] = []
-    commands: List[Command] = []
-    options: List[Option] = []
+    subgroups: List["group"] = []
+    commands: List[command] = []
+    options: List[option] = []
     sort_key: int = 0
 
 
-class ColorConfig(BaseModel):
+class color_config(BaseModel):
     """Color configuration for help output."""
 
     app: str = "bold bright_cyan"
