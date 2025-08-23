@@ -131,22 +131,27 @@ class Cli(BaseModel):
 
     def run(self):
         """Run the CLI."""
+        parser = self.build_parser()
         try:
-            parser = self.build_parser()
-        except ValueError as e:
-            console = Console()
-            console.print(str(e), markup=True)
+            args, unknown = parser.parse_known_args()
+        except SystemExit:
             sys.exit(1)
-        args = parser.parse_args()
         path = []
         for i in range(1, self.get_max_depth() + 2):
             cmd = getattr(args, f"command_{i}", None)
             if cmd is None:
                 break
             path.append(cmd)
-        if getattr(args, "help", False) or not hasattr(args, "func"):
+        if (
+            args.help
+            or "--help" in unknown
+            or "-h" in unknown
+            or not hasattr(args, "func")
+        ):
             self.print_help(path)
+            sys.exit(0)
         else:
+            args = parser.parse_args()
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
@@ -231,9 +236,7 @@ class Cli(BaseModel):
         if isinstance(node, Group):
             return node.name
         args_str = " ".join(
-            f"[{arg.name.upper()},{arg.arg_type.__name__}]"
-            if self.show_types
-            else f"[{arg.name.upper()}]"
+            f"[{arg.name.upper()}]"
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
         )
         return f"{node.name} {args_str}".rstrip()
