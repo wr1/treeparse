@@ -208,4 +208,3 @@ def test_demo_add_permission_help(mock_argv, capsys):
         app.run()
     captured = capsys.readouterr()
     assert "Add a permission for a user." in captured.out
-
