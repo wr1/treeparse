@@ -1,7 +1,6 @@
 import sys
-from pathlib import Path
 import pytest
-from examples.demo import main, cli
+from examples.demo import main
 
 
 @pytest.fixture
@@ -38,3 +37,27 @@ def test_demo_invalid_command(mock_argv, capsys):
 def test_demo_execute_command(mock_argv):
     sys.argv = ["demo.py", "info"]
     main()  # Should execute without error
+
+
+def test_demo_user_add_help(mock_argv, capsys):
+    sys.argv = ["demo.py", "user", "add", "--help"]
+    with pytest.raises(SystemExit):
+        main()
+    captured = capsys.readouterr()
+    assert "Add a new user to the system." in captured.out
+
+
+def test_demo_remove_role_help(mock_argv, capsys):
+    sys.argv = ["demo.py", "user", "manage", "remove-role", "--help"]
+    with pytest.raises(SystemExit):
+        main()
+    captured = capsys.readouterr()
+    assert "Remove a role from a user." in captured.out
+
+
+def test_demo_add_permission_help(mock_argv, capsys):
+    sys.argv = ["demo.py", "user", "manage", "permissions", "set", "add", "--help"]
+    with pytest.raises(SystemExit):
+        main()
+    captured = capsys.readouterr()
+    assert "Add a permission for a user." in captured.out
