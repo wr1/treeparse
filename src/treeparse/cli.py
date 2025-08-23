@@ -54,6 +54,19 @@ class Cli(BaseModel):
 
         return recurse(self)
 
+    def _get_node_from_path(self, path: List[str]) -> Union[Group, Command, "Cli"]:
+        """Get node from path."""
+        current: Union["Cli", Group, Command] = self
+        for p in path:
+            if not hasattr(current, "subgroups"):
+                raise ValueError(f"Path not found: {path}")
+            children = current.subgroups + current.commands
+            ch = next((c for c in children if c.name == p), None)
+            if ch is None:
+                raise ValueError(f"Path not found: {path}")
+            current = ch
+        return current
+
     def build_parser(self) -> argparse.ArgumentParser:
         """Build argparse parser from CLI structure."""
         self._validate()
@@ -82,38 +95,43 @@ class Cli(BaseModel):
     ):
         if depth > max_depth:
             return
-        subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
         children = sorted(
-            node.subgroups + node.commands, key=lambda x: (x.sort_key, x.name)
+            (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
+            key=lambda x: (x.sort_key, x.name),
         )
-        for child in children:
-            child_parser = subparsers.add_parser(
-                child.name, help=child.help, add_help=False
-            )
-            for opt in child.options:
-                dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
-                kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
-                if opt.is_flag:
-                    kwargs["action"] = "store_true"
+        if children:
+            subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
+            for child in children:
+                child_parser = subparsers.add_parser(
+                    child.name, help=child.help, add_help=False
+                )
+                for opt in child.options:
+                    dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
+                    kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
+                    if opt.is_flag:
+                        kwargs["action"] = "store_true"
+                    else:
+                        kwargs["type"] = opt.arg_type
+                    child_parser.add_argument(*opt.flags, **kwargs)
+                child_parser.add_argument("--help", "-h", action="store_true")
+                if isinstance(child, Command):
+                    for arg in child.arguments:
+                        kwargs = {"help": arg.help, "type": arg.arg_type}
+                        if arg.dest is not None:
+                            kwargs["dest"] = arg.dest
+                        if arg.nargs is not None:
+                            kwargs["nargs"] = arg.nargs
+                        if arg.default is not None:
+                            kwargs["default"] = arg.default
+                        elif arg.nargs == "?":
+                            kwargs["default"] = None
+                        else:
+                            kwargs["nargs"] = "?"
+                            kwargs["default"] = None
+                        child_parser.add_argument(arg.name, **kwargs)
+                    child_parser.set_defaults(func=child.callback)
                 else:
-                    kwargs["type"] = opt.arg_type
-                child_parser.add_argument(*opt.flags, **kwargs)
-            child_parser.add_argument("--help", "-h", action="store_true")
-            if isinstance(child, Command):
-                for arg in child.arguments:
-                    kwargs = {"help": arg.help, "type": arg.arg_type}
-                    if arg.dest is not None:
-                        kwargs["dest"] = arg.dest
-                    if arg.nargs is not None:
-                        kwargs["nargs"] = arg.nargs
-                    if arg.default is not None:
-                        kwargs["default"] = arg.default
-                    elif arg.nargs == "?":
-                        kwargs["default"] = None
-                    child_parser.add_argument(arg.name, **kwargs)
-                child_parser.set_defaults(func=child.callback)
-            else:
-                self._build_subparser(child_parser, child, depth + 1, max_depth)
+                    self._build_subparser(child_parser, child, depth + 1, max_depth)
 
     def _validate(self):
         """Validate all commands in the CLI structure."""
@@ -152,6 +170,20 @@ class Cli(BaseModel):
             sys.exit(0)
         else:
             args = parser.parse_args()
+            current = self._get_node_from_path(path)
+            missing = []
+            for arg in current.arguments:
+                dest = arg.dest or arg.name
+                if (
+                    arg.nargs is None
+                    and arg.default is None
+                    and getattr(args, dest, None) is None
+                ):
+                    missing.append(arg.name)
+            if missing:
+                parser.error(
+                    "the following arguments are required: " + ", ".join(missing)
+                )
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
@@ -167,18 +199,7 @@ class Cli(BaseModel):
             path_str += " "
         usage = f"Usage: {self.name} {path_str}[OPTIONS] COMMAND [ARGS]..."
         console.print(usage)
-        current = self
-        for p in path:
-            ch = next(
-                c
-                for c in (
-                    current.subgroups + current.commands
-                    if hasattr(current, "subgroups")
-                    else []
-                )
-                if c.name == p
-            )
-            current = ch
+        current = self._get_node_from_path(path)
         console.print(
             f"[{self.color_config.requested_help}]Description: {current.help}[/{self.color_config.requested_help}]"
         )
