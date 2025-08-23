@@ -1,5 +1,3 @@
-# import sys
-
 from treeparse import cli, command
 
 
