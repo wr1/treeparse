@@ -69,7 +69,13 @@ def create_demo_cli():
     manage = Group(name="manage", help="Manage user settings and permissions.")
     user.subgroups.append(manage)
 
-    def set_role(role: str, user_id: str = None, reason: str = None, user_id_option: int = None, reason_option: str = None):
+    def set_role(
+        role: str,
+        user_id: str = None,
+        reason: str = None,
+        user_id_option: int = None,
+        reason_option: str = None,
+    ):
         pass
 
     set_role_cmd = Command(
@@ -202,4 +208,3 @@ def test_demo_add_permission_help(mock_argv, capsys):
         cli.run()
     captured = capsys.readouterr()
     assert "Add a permission for a user." in captured.out
-

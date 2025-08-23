@@ -179,10 +179,16 @@ class Cli(BaseModel):
             missing = []
             for arg in current.arguments:
                 dest = arg.dest or arg.name
-                if arg.nargs is None and arg.default is None and getattr(args, dest, None) is None:
+                if (
+                    arg.nargs is None
+                    and arg.default is None
+                    and getattr(args, dest, None) is None
+                ):
                     missing.append(arg.name)
             if missing:
-                parser.error("the following arguments are required: " + ", ".join(missing))
+                parser.error(
+                    "the following arguments are required: " + ", ".join(missing)
+                )
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
@@ -289,7 +295,11 @@ class Cli(BaseModel):
 
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
         style = "dim " + self.color_config.app if is_ancestor else self.color_config.app
-        help_style = "dim " + self.color_config.normal_help if is_ancestor else self.color_config.normal_help
+        help_style = (
+            "dim " + self.color_config.normal_help
+            if is_ancestor
+            else self.color_config.normal_help
+        )
         label = Text()
         label.append(self.name, style=style)
         name_len = len(self.name)
@@ -453,4 +463,3 @@ class Cli(BaseModel):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
-

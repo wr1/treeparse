@@ -1,8 +1,7 @@
-import sys
-from pathlib import Path
+# import sys
 
-sys.path.append(str(Path(__file__).parent.parent / "src"))
-from treeparse import Cli, Command
+from treeparse.cli import Cli
+from treeparse.models import Command
 
 
 def hello():
