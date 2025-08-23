@@ -95,8 +95,8 @@ set_role_cmd = Command(
     callback=set_role,
     arguments=[
         Argument(name="role", arg_type=str),
-        Argument(name="user_id", arg_type=str, required=False),
-        Argument(name="reason", arg_type=str, required=False),
+        Argument(name="user_id", arg_type=str, nargs="?", default=None),
+        Argument(name="reason", arg_type=str, nargs="?", default=None),
     ],
     options=[
         Option(
