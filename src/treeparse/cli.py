@@ -478,7 +478,6 @@ class cli(BaseModel):
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
-        help_lines = []
         if opt.help:
             label.append(" ")
             help_lines = self._wrap_help(opt.help, self.max_width - (max_start + 1))
@@ -489,7 +488,7 @@ class cli(BaseModel):
                 label.append(hl, style=option_help_style)
         if self.show_defaults and opt.default is not None:
             default_str = f" (default: {opt.default})"
-            if help_lines:
+            if opt.help:
                 label.append(
                     Text.from_markup(
                         f"[{default_style}]{default_str}[/{default_style}]"
