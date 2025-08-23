@@ -1,5 +1,6 @@
 import pytest
 import sys
+import json
 from treeparse import cli, command, argument, option
 
 
@@ -61,3 +62,19 @@ def test_show_types(capsys):
     captured = capsys.readouterr()
     assert "[ARG,int]" in captured.out
     assert "--opt: str" in captured.out
+
+
+def test_cli_json_output(capsys):
+    app = cli(name="test", help="Test CLI")
+    sys.argv = ["test", "--json"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    json_output = captured.out.strip()
+    try:
+        data = json.loads(json_output)
+    except json.JSONDecodeError:
+        pytest.fail("Output is not valid JSON")
+    assert data["name"] == "test"
+    assert data["help"] == "Test CLI"
+    assert data["type"] == "cli"
