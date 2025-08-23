@@ -14,7 +14,7 @@ def info(verbose: bool = False):
         logging.info("Detailed mode enabled.")
 
 
-def add_user(name: str, email: str = None):
+def add_user(name: str, email1: str = None):
     logging.info(f"Adding user: {name}")
     if email:
         logging.info(f"Email: {email}")
