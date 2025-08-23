@@ -114,7 +114,8 @@ class Cli(BaseModel):
         try:
             parser = self.build_parser()
         except ValueError as e:
-            print(str(e))
+            console = Console()
+            console.print(str(e), markup=True)
             sys.exit(1)
         args = parser.parse_args()
         path = []
@@ -170,15 +171,16 @@ class Cli(BaseModel):
                 name_len = len(node.name)
             else:
                 name_len = len(self._get_name_part(node))
-            prefix_len = depth * 4  # Assuming 4 chars per level
+            prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
-            opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-            for opt in opts:
-                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                opt_name = ", ".join(flags)
-                opt_len = len(opt_name)
-                opt_prefix = (depth + 1) * 4
-                max_start = max(max_start, opt_prefix + opt_len)
+            if not isinstance(node, Cli):
+                opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+                for opt in opts:
+                    flags = sorted(opt.flags, key=lambda f: (-len(f), f))
+                    opt_name = ", ".join(flags)
+                    opt_len = len(opt_name)
+                    opt_prefix = (depth + 1) * 4
+                    max_start = max(max_start, opt_prefix + opt_len)
             if isinstance(node, Command):
                 return
             children = sorted(
@@ -240,13 +242,12 @@ class Cli(BaseModel):
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
         if self.help:
-            help_start = max_start + 1
-            available = self.max_width - help_start
-            help_lines = self._wrap_help(self.help, available)
-            label.append(" " + help_lines[0], style=self.color_config.normal_help)
+            label.append(" ")
+            help_lines = self._wrap_help(self.help, self.max_width - (max_start + 1))
+            label.append(help_lines[0], style=self.color_config.normal_help)
             for hl in help_lines[1:]:
                 label.append("\n")
-                label.append(" " * help_start)
+                label.append(" " * (name_len + padding + 1))
                 label.append(hl, style=self.color_config.normal_help)
         return label
 
@@ -272,13 +273,12 @@ class Cli(BaseModel):
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
         if node.help:
-            help_start = max_start + 1
-            available = self.max_width - help_start
-            help_lines = self._wrap_help(node.help, available)
-            label.append(" " + help_lines[0], style=help_style)
+            label.append(" ")
+            help_lines = self._wrap_help(node.help, self.max_width - (max_start + 1))
+            label.append(help_lines[0], style=help_style)
             for hl in help_lines[1:]:
                 label.append("\n")
-                label.append(" " * help_start)
+                label.append(" " * (name_len + padding + 1))
                 label.append(hl, style=help_style)
         return label
 
@@ -292,13 +292,12 @@ class Cli(BaseModel):
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
         if opt.help:
-            help_start = max_start + 1
-            available = self.max_width - help_start
-            help_lines = self._wrap_help(opt.help, available)
-            label.append(" " + help_lines[0], style=self.color_config.option_help)
+            label.append(" ")
+            help_lines = self._wrap_help(opt.help, self.max_width - (max_start + 1))
+            label.append(help_lines[0], style=self.color_config.option_help)
             for hl in help_lines[1:]:
                 label.append("\n")
-                label.append(" " * help_start)
+                label.append(" " * (name_len + padding + 1))
                 label.append(hl, style=self.color_config.option_help)
         return label
 
