@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 demo = "examples.demo:main"
 basic = "examples.basic:main"
+list_demo = "examples.list_demo:main"
 
 [dependency-groups]
 dev = [
