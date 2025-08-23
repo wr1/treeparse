@@ -1,4 +1,5 @@
 import pytest
+from typing import List
 from treeparse.models import argument, option, command, group
 
 
@@ -57,3 +58,41 @@ def test_command_validation_type_mismatch():
 def test_group_model():
     grp = group(name="test", subgroups=[], commands=[])
     assert grp.name == "test"
+
+
+def test_command_validation_list_arg():
+    def callback(words: List[str]):
+        pass
+
+    cmd = command(
+        name="echo",
+        callback=callback,
+        arguments=[argument(name="words", nargs="*", arg_type=str)],
+    )
+    cmd.validate()  # Should not raise
+
+
+def test_command_validation_list_option():
+    def callback(tags: List[str]):
+        pass
+
+    cmd = command(
+        name="tag",
+        callback=callback,
+        options=[option(flags=["--tags"], nargs="+", arg_type=str)],
+    )
+    cmd.validate()  # Should not raise
+
+
+def test_command_validation_list_mismatch():
+    def callback(words: str):
+        pass
+
+    cmd = command(
+        name="echo",
+        callback=callback,
+        arguments=[argument(name="words", nargs="*", arg_type=str)],
+    )
+    with pytest.raises(ValueError) as exc:
+        cmd.validate()
+    assert "type mismatch" in str(exc.value)
