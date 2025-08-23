@@ -1,6 +1,7 @@
 from typing import List, Union
 import argparse
 import sys
+import json
 from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
@@ -67,6 +68,55 @@ class cli(BaseModel):
             current = ch
         return current
 
+    def structure_dict(self):
+        """Return a dictionary representation of the CLI structure."""
+
+        def recurse(node: Union["cli", group, command]):
+            d = {"name": node.name, "help": node.help}
+            if hasattr(node, "sort_key"):
+                d["sort_key"] = node.sort_key
+            if hasattr(node, "options"):
+                d["options"] = [
+                    {
+                        **opt.model_dump(exclude={"arg_type"}),
+                        "arg_type": opt.arg_type.__name__
+                        if not opt.is_flag
+                        else "bool",
+                    }
+                    for opt in sorted(
+                        node.options, key=lambda x: (x.sort_key, x.flags[0])
+                    )
+                ]
+            if isinstance(node, command):
+                d["type"] = "command"
+                d["callback"] = node.callback.__name__
+                d["arguments"] = [
+                    {
+                        **arg.model_dump(exclude={"arg_type"}),
+                        "arg_type": arg.arg_type.__name__,
+                    }
+                    for arg in sorted(
+                        node.arguments, key=lambda x: (x.sort_key, x.name)
+                    )
+                ]
+            elif isinstance(node, group):
+                d["type"] = "group"
+            else:
+                d["type"] = "cli"
+            if hasattr(node, "subgroups"):
+                d["subgroups"] = [
+                    recurse(g)
+                    for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))
+                ]
+            if hasattr(node, "commands"):
+                d["commands"] = [
+                    recurse(c)
+                    for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))
+                ]
+            return d
+
+        return recurse(self)
+
     def build_parser(self) -> argparse.ArgumentParser:
         """Build argparse parser from CLI structure."""
         self._validate()
@@ -83,6 +133,9 @@ class cli(BaseModel):
                 kwargs["type"] = opt.arg_type
             parser.add_argument(*opt.flags, **kwargs)
         parser.add_argument("--help", "-h", action="store_true")
+        parser.add_argument(
+            "--json", action="store_true", help="Output CLI structure as JSON"
+        )
         self._build_subparser(parser, self, 1, max_depth)
         return parser
 
@@ -114,6 +167,9 @@ class cli(BaseModel):
                         kwargs["type"] = opt.arg_type
                     child_parser.add_argument(*opt.flags, **kwargs)
                 child_parser.add_argument("--help", "-h", action="store_true")
+                child_parser.add_argument(
+                    "--json", action="store_true", help="Output CLI structure as JSON"
+                )
                 if isinstance(child, command):
                     for arg in child.arguments:
                         kwargs = {"help": arg.help, "type": arg.arg_type}
@@ -165,8 +221,11 @@ class cli(BaseModel):
             if cmd is None:
                 break
             path.append(cmd)
-        if (
-            args.help
+        if getattr(args, "json", False) or "--json" in unknown:
+            print(json.dumps(self.structure_dict(), indent=2))
+            sys.exit(0)
+        elif (
+            getattr(args, "help", False)
             or "--help" in unknown
             or "-h" in unknown
             or not hasattr(args, "func")
@@ -192,7 +251,7 @@ class cli(BaseModel):
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
-                if not k.startswith("command_") and k not in ("func", "help")
+                if not k.startswith("command_") and k not in ("func", "help", "json")
             }
             args.func(**arg_dict)
 
