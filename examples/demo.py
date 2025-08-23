@@ -1,4 +1,9 @@
+import sys
 import logging
+from pathlib import Path
+from typing import List
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 from treeparse import cli, group, command, argument, option
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +47,14 @@ def remove_role(role: str, user_id: str):
 
 def add_permission(user_id: str, permission: str):
     logging.info(f"Adding permission {permission} for user {user_id}")
+
+
+def echo(words: List[str]):
+    logging.info("Echo: " + " ".join(words))
+
+
+def tag(tags: List[str]):
+    logging.info(f"Tags: {tags}")
 
 
 app = cli(
@@ -155,6 +168,32 @@ add_perm_cmd = command(
     ],
 )
 set_permissions.commands.append(add_perm_cmd)
+
+echo_cmd = command(
+    name="echo",
+    help="Echo the provided words.",
+    callback=echo,
+    arguments=[
+        argument(name="words", nargs="*", arg_type=str, sort_key=0),
+    ],
+)
+app.commands.append(echo_cmd)
+
+tag_cmd = command(
+    name="tag",
+    help="Add tags.",
+    callback=tag,
+    options=[
+        option(
+            flags=["--tags", "-t"],
+            nargs="+",
+            arg_type=str,
+            help="Tags to add",
+            sort_key=0,
+        ),
+    ],
+)
+app.commands.append(tag_cmd)
 
 
 def main():
