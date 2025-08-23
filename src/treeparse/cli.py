@@ -13,6 +13,18 @@ from .option import option
 from .color_config import color_config
 
 
+def str2bool(v):
+    """Convert string to boolean for argparse."""
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
 class RichArgumentParser(argparse.ArgumentParser):
     """Custom ArgumentParser with rich-formatted errors."""
 
@@ -43,6 +55,7 @@ class cli(BaseModel):
     max_width: int = 120
     colors: color_config = color_config()
     show_types: bool = False
+    show_defaults: bool = False
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -134,7 +147,7 @@ class cli(BaseModel):
             if opt.is_flag:
                 kwargs["action"] = "store_true"
             else:
-                kwargs["type"] = opt.arg_type
+                kwargs["type"] = opt.arg_type if opt.arg_type != bool else str2bool
                 if opt.nargs is not None:
                     kwargs["nargs"] = opt.nargs
             parser.add_argument(*opt.flags, **kwargs)
@@ -166,13 +179,18 @@ class cli(BaseModel):
                     if opt.is_flag:
                         kwargs["action"] = "store_true"
                     else:
-                        kwargs["type"] = opt.arg_type
+                        kwargs["type"] = (
+                            opt.arg_type if opt.arg_type != bool else str2bool
+                        )
                         if opt.nargs is not None:
                             kwargs["nargs"] = opt.nargs
                     child_parser.add_argument(*opt.flags, **kwargs)
                 if isinstance(child, command):
                     for arg in child.arguments:
-                        kwargs = {"help": arg.help, "type": arg.arg_type}
+                        kwargs = {
+                            "help": arg.help,
+                            "type": arg.arg_type if arg.arg_type != bool else str2bool,
+                        }
                         if arg.dest is not None:
                             kwargs["dest"] = arg.dest
                         if arg.nargs is not None:
@@ -443,6 +461,7 @@ class cli(BaseModel):
         option_help_style = (
             "dim " + self.colors.option_help if is_ancestor else self.colors.option_help
         )
+        default_style = "bold dim white"
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
         flags_str = ", ".join(flags)
@@ -467,6 +486,14 @@ class cli(BaseModel):
                 label.append("\n")
                 label.append(" " * (name_len + padding + 1))
                 label.append(hl, style=option_help_style)
+        if self.show_defaults and opt.default is not None:
+            default_str = f" (default: {opt.default})"
+            if help_lines:
+                label.append("\n")
+                label.append(" " * (name_len + padding + 1))
+            else:
+                label.append(" ")
+            label.append(default_str, style=default_style)
         return label
 
     def _add_children(
