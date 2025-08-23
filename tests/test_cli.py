@@ -1,6 +1,7 @@
 import pytest
 import sys
 import json
+from typing import List
 from treeparse import cli, command, argument, option
 
 
@@ -78,3 +79,43 @@ def test_cli_json_output(capsys):
     assert data["name"] == "test"
     assert data["help"] == "Test CLI"
     assert data["type"] == "cli"
+
+
+def test_cli_list_arg():
+    called = [False]
+    captured_words = []
+
+    def callback(words: List[str]):
+        called[0] = True
+        captured_words.extend(words)
+
+    cmd = command(
+        name="echo",
+        callback=callback,
+        arguments=[argument(name="words", nargs="*", arg_type=str)],
+    )
+    app = cli(name="test", commands=[cmd])
+    sys.argv = ["test", "echo", "hello", "world"]
+    app.run()
+    assert called[0]
+    assert captured_words == ["hello", "world"]
+
+
+def test_cli_list_option():
+    called = [False]
+    captured_tags = []
+
+    def callback(tags: List[str]):
+        called[0] = True
+        captured_tags.extend(tags)
+
+    cmd = command(
+        name="tag",
+        callback=callback,
+        options=[option(flags=["--tags"], nargs="+", arg_type=str)],
+    )
+    app = cli(name="test", commands=[cmd])
+    sys.argv = ["test", "tag", "--tags", "tag1", "tag2"]
+    app.run()
+    assert called[0]
+    assert captured_tags == ["tag1", "tag2"]
