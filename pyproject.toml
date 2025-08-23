@@ -20,6 +20,8 @@ basic = "examples.basic:main"
 [dependency-groups]
 dev = [
     "pytest~=7.0",
+    "pytest-cov~=4.0",
     "ruff>=0.0.260,<0.0.261",
 ]
+
 
