@@ -1,5 +1,6 @@
 from typing import List, Union
 import argparse
+import sys
 from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
@@ -108,7 +109,11 @@ class Cli(BaseModel):
 
     def run(self):
         """Run the CLI."""
-        parser = self.build_parser()
+        try:
+            parser = self.build_parser()
+        except ValueError as e:
+            print(str(e))
+            sys.exit(1)
         args = parser.parse_args()
         path = []
         for i in range(1, self.get_max_depth() + 2):
