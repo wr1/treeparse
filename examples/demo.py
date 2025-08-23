@@ -28,7 +28,7 @@ def set_role(
     role: str,
     user_id: str = None,
     reason: str = None,
-    user_id_option: str = None,
+    user_id_option: int = None,
     reason_option: str = None,
 ):
     user_id = (
@@ -51,7 +51,8 @@ def add_permission(user_id: str, permission: str):
 cli = Cli(
     name="demo.py",
     help="This CLI provides commands to handle various tasks with subcommands for specific actions.",
-    max_width=120,
+    max_width=135,
+    show_types=True,
 )
 
 info_cmd = Command(
@@ -117,7 +118,7 @@ set_role_cmd = Command(
             flags=["--user-id", "-u"],
             dest="user_id_option",
             help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
-            arg_type=str,
+            arg_type=int,
             sort_key=0,
         ),
         Option(
