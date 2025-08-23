@@ -1,8 +1,4 @@
-import sys
 import logging
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
 from treeparse import cli, group, command, argument, option
 
 logging.basicConfig(level=logging.INFO)
