@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
+from rich.syntax import Syntax
 from .models import group, command, option, color_config
 
 
@@ -134,7 +135,7 @@ class cli(BaseModel):
             parser.add_argument(*opt.flags, **kwargs)
         parser.add_argument("--help", "-h", action="store_true")
         parser.add_argument(
-            "--json", action="store_true", help="Output CLI structure as JSON"
+            "--json", "-j", action="store_true", help="Output CLI structure as JSON"
         )
         self._build_subparser(parser, self, 1, max_depth)
         return parser
@@ -168,7 +169,10 @@ class cli(BaseModel):
                     child_parser.add_argument(*opt.flags, **kwargs)
                 child_parser.add_argument("--help", "-h", action="store_true")
                 child_parser.add_argument(
-                    "--json", action="store_true", help="Output CLI structure as JSON"
+                    "--json",
+                    "-j",
+                    action="store_true",
+                    help="Output CLI structure as JSON",
                 )
                 if isinstance(child, command):
                     for arg in child.arguments:
@@ -221,8 +225,12 @@ class cli(BaseModel):
             if cmd is None:
                 break
             path.append(cmd)
-        if getattr(args, "json", False) or "--json" in unknown:
-            print(json.dumps(self.structure_dict(), indent=2))
+        if getattr(args, "json", False) or "--json" in unknown or "-j" in unknown:
+            structure = self.structure_dict()
+            json_str = json.dumps(structure, indent=2)
+            console = Console()
+            syntax = Syntax(json_str, "json", theme="monokai", line_numbers=False)
+            console.print(syntax)
             sys.exit(0)
         elif (
             getattr(args, "help", False)
