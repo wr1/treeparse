@@ -57,12 +57,12 @@ class Command(BaseModel):
         if param_names != provided_names:
             missing = param_names - provided_names
             extra = provided_names - param_names
-            error_msg = f"Parameter name mismatch for command '[bold red]{self.name}[/bold red]': \n"
+            error_msg = f"Parameter name mismatch for command '[bold red]{self.name}[/bold red]': "
             if missing:
-                error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow].\n"
+                error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
             if extra:
                 error_msg += (
-                    f"\tExtra parameters in CLI definition: [yellow]{extra}[/yellow]. "
+                    f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
                 )
             error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
             raise ValueError(error_msg)
@@ -104,3 +104,4 @@ class ColorConfig(BaseModel):
     option_help: str = "italic yellow"
     requested_help: str = "bold white"
     normal_help: str = "white"
+    type_color: str = "red"
