@@ -1,18 +1,17 @@
 # import sys
 
-from treeparse.cli import Cli
-from treeparse.models import Command
+from treeparse import cli, command
 
 
 def hello():
     print("Hello, world!")
 
 
-cli = Cli(
+app = cli(
     name="basic.py",
     help="A basic CLI example.",
     commands=[
-        Command(
+        command(
             name="hello",
             help="Print hello world.",
             callback=hello,
@@ -22,7 +21,7 @@ cli = Cli(
 
 
 def main():
-    cli.run()
+    app.run()
 
 
 if __name__ == "__main__":
