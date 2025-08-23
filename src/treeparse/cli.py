@@ -83,9 +83,13 @@ class cli(BaseModel):
                 d["options"] = [
                     {
                         **opt.model_dump(exclude={"arg_type"}),
-                        "arg_type": opt.arg_type.__name__ if not opt.is_flag else "bool",
+                        "arg_type": opt.arg_type.__name__
+                        if not opt.is_flag
+                        else "bool",
                     }
-                    for opt in sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+                    for opt in sorted(
+                        node.options, key=lambda x: (x.sort_key, x.flags[0])
+                    )
                 ]
             if isinstance(node, command):
                 d["type"] = "command"
@@ -95,16 +99,24 @@ class cli(BaseModel):
                         **arg.model_dump(exclude={"arg_type"}),
                         "arg_type": arg.arg_type.__name__,
                     }
-                    for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
+                    for arg in sorted(
+                        node.arguments, key=lambda x: (x.sort_key, x.name)
+                    )
                 ]
             elif isinstance(node, group):
                 d["type"] = "group"
             else:
                 d["type"] = "cli"
             if hasattr(node, "subgroups"):
-                d["subgroups"] = [recurse(g) for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))]
+                d["subgroups"] = [
+                    recurse(g)
+                    for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))
+                ]
             if hasattr(node, "commands"):
-                d["commands"] = [recurse(c) for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))]
+                d["commands"] = [
+                    recurse(c)
+                    for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))
+                ]
             return d
 
         return recurse(self)
@@ -242,9 +254,7 @@ class cli(BaseModel):
             ):
                 missing.append(arg.name)
         if missing:
-            parser.error(
-                "the following arguments are required: " + ", ".join(missing)
-            )
+            parser.error("the following arguments are required: " + ", ".join(missing))
         arg_dict = {
             k: v
             for k, v in vars(args).items()
@@ -352,9 +362,7 @@ class cli(BaseModel):
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
         style = "dim " + self.colors.app if is_ancestor else self.colors.app
         help_style = (
-            "dim " + self.colors.normal_help
-            if is_ancestor
-            else self.colors.normal_help
+            "dim " + self.colors.normal_help if is_ancestor else self.colors.normal_help
         )
         label = Text()
         label.append(self.name, style=style)
@@ -381,9 +389,7 @@ class cli(BaseModel):
         is_ancestor: bool,
     ) -> Text:
         base_help_style = (
-            self.colors.requested_help
-            if on_path
-            else self.colors.normal_help
+            self.colors.requested_help if on_path else self.colors.normal_help
         )
         help_style = "dim " + base_help_style if is_ancestor else base_help_style
         name_style = (
@@ -396,9 +402,7 @@ class cli(BaseModel):
             else self.colors.command
         )
         arg_style = (
-            "dim " + self.colors.argument
-            if is_ancestor
-            else self.colors.argument
+            "dim " + self.colors.argument if is_ancestor else self.colors.argument
         )
         label = Text()
         if isinstance(node, group):
@@ -434,14 +438,10 @@ class cli(BaseModel):
         self, opt: option, max_start: int, depth: int, is_ancestor: bool
     ) -> Text:
         option_style = (
-            "dim " + self.colors.option
-            if is_ancestor
-            else self.colors.option
+            "dim " + self.colors.option if is_ancestor else self.colors.option
         )
         option_help_style = (
-            "dim " + self.colors.option_help
-            if is_ancestor
-            else self.colors.option_help
+            "dim " + self.colors.option_help if is_ancestor else self.colors.option_help
         )
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
@@ -519,4 +519,3 @@ class cli(BaseModel):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
-
