@@ -28,20 +28,16 @@ uv pip install -e .[dev]
 ### Basic Example
 
 ```python
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
-from treeparse import Cli, Command
+from treeparse import cli, command
 
 def hello():
     print("Hello, world!")
 
-cli = Cli(
+app = cli(
     name="basic.py",
     help="A basic CLI example.",
     commands=[
-        Command(
+        command(
             name="hello",
             help="Print hello world.",
             callback=hello,
@@ -50,7 +46,7 @@ cli = Cli(
 )
 
 def main():
-    cli.run()
+    app.run()
 
 if __name__ == "__main__":
     main()
@@ -76,4 +72,5 @@ See `examples/demo.py` for a more complex CLI with groups, subcommands, argument
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
 
