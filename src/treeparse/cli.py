@@ -33,6 +33,7 @@ class Cli(BaseModel):
 
     def build_parser(self) -> argparse.ArgumentParser:
         """Build argparse parser from CLI structure."""
+        self._validate()
         max_depth = self.get_max_depth()
         parser = argparse.ArgumentParser(
             prog=self.name, description=self.help, add_help=False
@@ -90,6 +91,20 @@ class Cli(BaseModel):
                 child_parser.set_defaults(func=child.callback)
             else:
                 self._build_subparser(child_parser, child, depth + 1, max_depth)
+
+    def _validate(self):
+        """Validate all commands in the CLI structure."""
+
+        def recurse(node: Union["Cli", Group, Command]):
+            if isinstance(node, Command):
+                node.validate()
+            else:
+                for cmd in node.commands:
+                    recurse(cmd)
+                for grp in node.subgroups:
+                    recurse(grp)
+
+        recurse(self)
 
     def run(self):
         """Run the CLI."""
