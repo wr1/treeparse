@@ -81,11 +81,9 @@ class Cli(BaseModel):
                     kwargs = {"help": arg.help, "type": arg.arg_type, "dest": a_dest}
                     if arg.nargs is not None:
                         kwargs["nargs"] = arg.nargs
-                    elif not arg.required:
-                        kwargs["nargs"] = "?"
                     if arg.default is not None:
                         kwargs["default"] = arg.default
-                    elif "nargs" in kwargs and kwargs["nargs"] == "?":
+                    elif arg.nargs == "?":
                         kwargs["default"] = None
                     child_parser.add_argument(arg.name, **kwargs)
                 child_parser.set_defaults(func=child.callback)
