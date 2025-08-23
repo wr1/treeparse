@@ -77,8 +77,9 @@ class Cli(BaseModel):
             child_parser.add_argument("--help", "-h", action="store_true")
             if isinstance(child, Command):
                 for arg in child.arguments:
-                    a_dest = arg.dest or arg.name
-                    kwargs = {"help": arg.help, "type": arg.arg_type, "dest": a_dest}
+                    kwargs = {"help": arg.help, "type": arg.arg_type}
+                    if arg.dest is not None:
+                        kwargs["dest"] = arg.dest
                     if arg.nargs is not None:
                         kwargs["nargs"] = arg.nargs
                     if arg.default is not None:
