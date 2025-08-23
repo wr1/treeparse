@@ -28,6 +28,10 @@ uv pip install -e .[dev]
 ### Basic Example
 
 ```python
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 from treeparse import cli, command
 
 def hello():
