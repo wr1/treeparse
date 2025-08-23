@@ -49,10 +49,15 @@ class Command(BaseModel):
             dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
             provided.add(dest)
         if param_names != provided:
-            raise ValueError(
-                f"Callback parameters {param_names} do not match provided args/options "
-                f"{provided} for command {self.name}"
-            )
+            missing = param_names - provided
+            extra = provided - param_names
+            error_msg = f"Parameter mismatch for command '{self.name}': "
+            if missing:
+                error_msg += f"Missing parameters in CLI definition: {missing}. "
+            if extra:
+                error_msg += f"Extra parameters in CLI definition: {extra}. "
+            error_msg += f"Callback expects: {param_names}, CLI provides: {provided}"
+            raise ValueError(error_msg)
 
 
 class Group(BaseModel):
