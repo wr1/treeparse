@@ -132,6 +132,8 @@ class cli(BaseModel):
                 kwargs["action"] = "store_true"
             else:
                 kwargs["type"] = opt.arg_type
+                if opt.nargs is not None:
+                    kwargs["nargs"] = opt.nargs
             parser.add_argument(*opt.flags, **kwargs)
         parser.add_argument("--help", "-h", action="store_true")
         parser.add_argument(
@@ -166,6 +168,8 @@ class cli(BaseModel):
                         kwargs["action"] = "store_true"
                     else:
                         kwargs["type"] = opt.arg_type
+                        if opt.nargs is not None:
+                            kwargs["nargs"] = opt.nargs
                     child_parser.add_argument(*opt.flags, **kwargs)
                 child_parser.add_argument("--help", "-h", action="store_true")
                 child_parser.add_argument(
