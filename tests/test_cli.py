@@ -61,3 +61,4 @@ def test_show_types(capsys):
     captured = capsys.readouterr()
     assert "[ARG,int]" in captured.out
     assert "--opt: str" in captured.out
+

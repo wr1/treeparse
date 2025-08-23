@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "treeparse"
 version = "0.1.0"
 description = "Intuitive CLI framework using argparse, rich, and pydantic"
-authors = [{ name = "AI Engineer" }]
+authors = [{ name = "wr1" }]
 requires-python = "~=3.8"
 dependencies = [
     "rich>=13.3.1,<14",
@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 demo = "examples.demo:main"
+basic = "examples.basic:main"
 
 [dependency-groups]
 dev = [

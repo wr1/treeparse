@@ -149,7 +149,12 @@ class Cli(BaseModel):
 
     def run(self):
         """Run the CLI."""
-        parser = self.build_parser()
+        try:
+            parser = self.build_parser()
+        except ValueError as e:
+            console = Console()
+            console.print(str(e), markup=True)
+            sys.exit(1)
         try:
             args, unknown = parser.parse_known_args()
         except SystemExit:
@@ -284,6 +289,7 @@ class Cli(BaseModel):
 
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
         style = "dim " + self.color_config.app if is_ancestor else self.color_config.app
+        help_style = "dim " + self.color_config.normal_help if is_ancestor else self.color_config.normal_help
         label = Text()
         label.append(self.name, style=style)
         name_len = len(self.name)
@@ -293,11 +299,11 @@ class Cli(BaseModel):
         if self.help:
             label.append(" ")
             help_lines = self._wrap_help(self.help, self.max_width - (max_start + 1))
-            label.append(help_lines[0], style=self.color_config.normal_help)
+            label.append(help_lines[0], style=help_style)
             for hl in help_lines[1:]:
                 label.append("\n")
                 label.append(" " * (name_len + padding + 1))
-                label.append(hl, style=self.color_config.normal_help)
+                label.append(hl, style=help_style)
         return label
 
     def _get_label(
@@ -308,11 +314,12 @@ class Cli(BaseModel):
         depth: int,
         is_ancestor: bool,
     ) -> Text:
-        help_style = (
+        base_help_style = (
             self.color_config.requested_help
             if on_path
             else self.color_config.normal_help
         )
+        help_style = "dim " + base_help_style if is_ancestor else base_help_style
         name_style = (
             "dim " + self.color_config.group
             if is_ancestor and isinstance(node, Group)
@@ -365,6 +372,11 @@ class Cli(BaseModel):
             if is_ancestor
             else self.color_config.option
         )
+        option_help_style = (
+            "dim " + self.color_config.option_help
+            if is_ancestor
+            else self.color_config.option_help
+        )
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
         flags_str = ", ".join(flags)
@@ -374,7 +386,7 @@ class Cli(BaseModel):
             type_name = "bool" if opt.is_flag else opt.arg_type.__name__
             label.append(
                 Text.from_markup(
-                    f":[{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}]"
+                    f": [{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}]"
                 )
             )
             name_len = label.cell_len
@@ -384,11 +396,11 @@ class Cli(BaseModel):
         if opt.help:
             label.append(" ")
             help_lines = self._wrap_help(opt.help, self.max_width - (max_start + 1))
-            label.append(help_lines[0], style=self.color_config.option_help)
+            label.append(help_lines[0], style=option_help_style)
             for hl in help_lines[1:]:
                 label.append("\n")
                 label.append(" " * (name_len + padding + 1))
-                label.append(hl, style=self.color_config.option_help)
+                label.append(hl, style=option_help_style)
         return label
 
     def _add_children(
