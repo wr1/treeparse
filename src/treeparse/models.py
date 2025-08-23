@@ -23,6 +23,7 @@ class option(BaseModel):
     arg_type: Any = str
     help: str = ""
     default: Any = None
+    nargs: Union[int, str, None] = None
     is_flag: bool = False
     sort_key: int = 0
 
@@ -49,10 +50,16 @@ class command(BaseModel):
         provided = {}
         for arg in self.arguments:
             dest = arg.dest or arg.name
-            provided[dest] = arg.arg_type
+            arg_type = arg.arg_type
+            if arg.nargs in ["*", "+"]:
+                arg_type = List[arg_type]
+            provided[dest] = arg_type
         for opt in self.options:
             dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
-            provided[dest] = opt.arg_type if not opt.is_flag else bool
+            opt_type = bool if opt.is_flag else opt.arg_type
+            if opt.nargs in ["*", "+"] and not opt.is_flag:
+                opt_type = List[opt_type]
+            provided[dest] = opt_type
         provided_names = set(provided.keys())
         if param_names != provided_names:
             missing = param_names - provided_names
