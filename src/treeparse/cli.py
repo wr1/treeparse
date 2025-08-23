@@ -75,19 +75,19 @@ class Cli(BaseModel):
                     kwargs["type"] = opt.arg_type
                 child_parser.add_argument(*opt.flags, **kwargs)
             child_parser.add_argument("--help", "-h", action="store_true")
-            for arg in child.arguments:
-                a_dest = arg.dest or arg.name
-                kwargs = {"help": arg.help, "type": arg.arg_type, "dest": a_dest}
-                if arg.nargs is not None:
-                    kwargs["nargs"] = arg.nargs
-                elif not arg.required:
-                    kwargs["nargs"] = "?"
-                if arg.default is not None:
-                    kwargs["default"] = arg.default
-                elif "nargs" in kwargs and kwargs["nargs"] == "?":
-                    kwargs["default"] = None
-                child_parser.add_argument(arg.name, **kwargs)
             if isinstance(child, Command):
+                for arg in child.arguments:
+                    a_dest = arg.dest or arg.name
+                    kwargs = {"help": arg.help, "type": arg.arg_type, "dest": a_dest}
+                    if arg.nargs is not None:
+                        kwargs["nargs"] = arg.nargs
+                    elif not arg.required:
+                        kwargs["nargs"] = "?"
+                    if arg.default is not None:
+                        kwargs["default"] = arg.default
+                    elif "nargs" in kwargs and kwargs["nargs"] == "?":
+                        kwargs["default"] = None
+                    child_parser.add_argument(arg.name, **kwargs)
                 child_parser.set_defaults(func=child.callback)
             else:
                 self._build_subparser(child_parser, child, depth + 1, max_depth)
