@@ -18,6 +18,7 @@ class Cli(BaseModel):
     options: List[Option] = []
     max_width: int = 120
     color_config: ColorConfig = ColorConfig()
+    show_types: bool = False
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -179,6 +180,9 @@ class Cli(BaseModel):
                     flags = sorted(opt.flags, key=lambda f: (-len(f), f))
                     opt_name = ", ".join(flags)
                     opt_len = len(opt_name)
+                    if self.show_types:
+                        type_name = "bool" if opt.is_flag else opt.arg_type.__name__
+                        opt_len += len(f" ({type_name})")
                     opt_prefix = (depth + 1) * 4
                     max_start = max(max_start, opt_prefix + opt_len)
             if isinstance(node, Command):
@@ -206,10 +210,13 @@ class Cli(BaseModel):
     def _get_name_part(self, node: Union[Group, Command]) -> str:
         if isinstance(node, Group):
             return node.name
-        args_str = " ".join(
-            f"[{arg.name.upper()}]"
-            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
-        )
+        args_str_parts = []
+        for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
+            arg_part = f"[{arg.name.upper()}]"
+            if self.show_types:
+                arg_part += f" ({arg.arg_type.__name__})"
+            args_str_parts.append(arg_part)
+        args_str = " ".join(args_str_parts)
         return f"{node.name} {args_str}".rstrip()
 
     def _wrap_help(self, help: str, width: int) -> List[str]:
@@ -268,6 +275,11 @@ class Cli(BaseModel):
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
                 label.append(" ")
                 label.append(f"[{arg.name.upper()}]", style=self.color_config.argument)
+                if self.show_types:
+                    label.append(
+                        f" ([{self.color_config.type_color}]{arg.arg_type.__name__}[/{self.color_config.type_color}])",
+                        markup=True,
+                    )
             name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
@@ -288,6 +300,13 @@ class Cli(BaseModel):
         flags_str = ", ".join(flags)
         label.append(flags_str, style=self.color_config.option)
         name_len = len(flags_str)
+        if self.show_types:
+            type_name = "bool" if opt.is_flag else opt.arg_type.__name__
+            label.append(
+                f" ([{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}])",
+                markup=True,
+            )
+            name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
