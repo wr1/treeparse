@@ -1,45 +1,51 @@
 import sys
+import logging
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
-import click
 from treeparse import Cli, Group, Command, Argument, Option
 
-
-def info(args):
-    click.echo("CLI Information")
-    if args.verbose:
-        click.echo("Detailed mode enabled.")
+logging.basicConfig(level=logging.INFO)
 
 
-def add_user(args):
-    click.echo(f"Adding user: {args.name}")
-    if args.email:
-        click.echo(f"Email: {args.email}")
+def info(verbose: bool = False):
+    logging.info("CLI Information")
+    if verbose:
+        logging.info("Detailed mode enabled.")
 
 
-def list_users(args):
-    click.echo("Listing all users...")
+def add_user(name: str, email: str = None):
+    logging.info(f"Adding user: {name}")
+    if email:
+        logging.info(f"Email: {email}")
 
 
-def set_role(args):
+def list_users():
+    logging.info("Listing all users...")
+
+
+def set_role(
+    role: str,
+    user_id: str = None,
+    reason: str = None,
+    user_id_option: str = None,
+    reason_option: str = None,
+):
     user_id = (
-        args.user_id_option
-        if args.user_id_option is not None
-        else (args.user_id or "unspecified")
+        user_id_option if user_id_option is not None else (user_id or "unspecified")
     )
-    reason = args.reason_option if args.reason_option is not None else args.reason
-    click.echo(f"Setting role {args.role} for user ID {user_id}")
+    reason = reason_option if reason_option is not None else reason
+    logging.info(f"Setting role {role} for user ID {user_id}")
     if reason:
-        click.echo(f"Reason: {reason}")
+        logging.info(f"Reason: {reason}")
 
 
-def remove_role(args):
-    click.echo(f"Removing role {args.role} for user {args.user_id}")
+def remove_role(role: str, user_id: str):
+    logging.info(f"Removing role {role} for user {user_id}")
 
 
-def add_permission(args):
-    click.echo(f"Adding permission {args.permission} for user {args.user_id}")
+def add_permission(user_id: str, permission: str):
+    logging.info(f"Adding permission {permission} for user {user_id}")
 
 
 cli = Cli(
