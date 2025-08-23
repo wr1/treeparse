@@ -1,22 +1,24 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "treeparse"
 version = "0.1.0"
 description = "Intuitive CLI framework using argparse, rich, and pydantic"
-authors = ["AI Engineer"]
+authors = [{ name = "AI Engineer" }]
+requires-python = "~=3.8"
+dependencies = [
+    "rich>=13.3.1,<14",
+    "pydantic>=2.0.2,<3",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-rich = "^13.3.1"
-pydantic = "^2.0.2"
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.0"
-ruff = "^0.0.260"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
+[project.scripts]
 demo = "examples.demo:main"
+
+[dependency-groups]
+dev = [
+    "pytest~=7.0",
+    "ruff>=0.0.260,<0.0.261",
+]
 
