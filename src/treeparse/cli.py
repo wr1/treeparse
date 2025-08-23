@@ -174,16 +174,10 @@ class Cli(BaseModel):
             missing = []
             for arg in current.arguments:
                 dest = arg.dest or arg.name
-                if (
-                    arg.nargs is None
-                    and arg.default is None
-                    and getattr(args, dest, None) is None
-                ):
+                if arg.nargs is None and arg.default is None and getattr(args, dest, None) is None:
                     missing.append(arg.name)
             if missing:
-                parser.error(
-                    "the following arguments are required: " + ", ".join(missing)
-                )
+                parser.error("the following arguments are required: " + ", ".join(missing))
             arg_dict = {
                 k: v
                 for k, v in vars(args).items()
@@ -256,10 +250,14 @@ class Cli(BaseModel):
     def _get_name_part(self, node: Union[Group, Command]) -> str:
         if isinstance(node, Group):
             return node.name
-        args_str = " ".join(
-            f"[{arg.name.upper()}]"
-            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
-        )
+        args_parts = []
+        for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
+            part = f"[{arg.name.upper()}"
+            if self.show_types:
+                part += f",{arg.arg_type.__name__}"
+            part += "]"
+            args_parts.append(part)
+        args_str = " ".join(args_parts)
         return f"{node.name} {args_str}".rstrip()
 
     def _wrap_help(self, help: str, width: int) -> List[str]:
@@ -376,7 +374,7 @@ class Cli(BaseModel):
             type_name = "bool" if opt.is_flag else opt.arg_type.__name__
             label.append(
                 Text.from_markup(
-                    f": [{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}]"
+                    f":[{self.color_config.type_color}]{type_name}[/{self.color_config.type_color}]"
                 )
             )
             name_len = label.cell_len
@@ -443,3 +441,4 @@ class Cli(BaseModel):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
+
