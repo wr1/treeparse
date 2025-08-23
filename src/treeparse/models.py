@@ -57,12 +57,12 @@ class Command(BaseModel):
         if param_names != provided_names:
             missing = param_names - provided_names
             extra = provided_names - param_names
-            error_msg = f"Parameter name mismatch for command '[bold red]{self.name}[/bold red]': "
+            error_msg = f"Parameter name mismatch for command '[bold red]{self.name}[/bold red]': \n"
             if missing:
-                error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
+                error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow].\n"
             if extra:
                 error_msg += (
-                    f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
+                    f"\tExtra parameters in CLI definition: [yellow]{extra}[/yellow]. "
                 )
             error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
             raise ValueError(error_msg)

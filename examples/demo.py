@@ -14,7 +14,7 @@ def info(verbose: bool = False):
         logging.info("Detailed mode enabled.")
 
 
-def add_user(name: str, email1: str = None):
+def add_user(name: str, email: str = None):
     logging.info(f"Adding user: {name}")
     if email:
         logging.info(f"Email: {email}")
@@ -60,7 +60,10 @@ info_cmd = Command(
     callback=info,
     options=[
         Option(
-            flags=["--verbose", "-v"], is_flag=True, help="Show detailed information."
+            flags=["--verbose", "-v"],
+            is_flag=True,
+            help="Show detailed information.",
+            sort_key=0,
         ),
     ],
 )
@@ -77,10 +80,15 @@ add_cmd = Command(
     help="Add a new user to the system.",
     callback=add_user,
     arguments=[
-        Argument(name="name", arg_type=str),
+        Argument(name="name", arg_type=str, sort_key=0),
     ],
     options=[
-        Option(flags=["--email", "-e"], help="Email address of the user", arg_type=str),
+        Option(
+            flags=["--email", "-e"],
+            help="Email address of the user",
+            arg_type=str,
+            sort_key=0,
+        ),
     ],
 )
 user.commands.append(add_cmd)
@@ -100,9 +108,9 @@ set_role_cmd = Command(
     help="Set a role for a user.",
     callback=set_role,
     arguments=[
-        Argument(name="role", arg_type=str),
-        Argument(name="user_id", arg_type=str, nargs="?", default=None),
-        Argument(name="reason", arg_type=str, nargs="?", default=None),
+        Argument(name="role", arg_type=str, nargs="?", default=None, sort_key=0),
+        Argument(name="user_id", arg_type=str, nargs="?", default=None, sort_key=1),
+        Argument(name="reason", arg_type=str, nargs="?", default=None, sort_key=2),
     ],
     options=[
         Option(
@@ -110,12 +118,14 @@ set_role_cmd = Command(
             dest="user_id_option",
             help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
             arg_type=str,
+            sort_key=0,
         ),
         Option(
             flags=["--reason", "-r"],
             dest="reason_option",
             help="Reason for setting the role",
             arg_type=str,
+            sort_key=1,
         ),
     ],
 )
@@ -126,8 +136,8 @@ remove_role_cmd = Command(
     help="Remove a role from a user.",
     callback=remove_role,
     arguments=[
-        Argument(name="role", arg_type=str),
-        Argument(name="user_id", arg_type=str),
+        Argument(name="role", arg_type=str, sort_key=0),
+        Argument(name="user_id", arg_type=str, sort_key=1),
     ],
 )
 manage.commands.append(remove_role_cmd)
@@ -143,8 +153,8 @@ add_perm_cmd = Command(
     help="Add a permission for a user.",
     callback=add_permission,
     arguments=[
-        Argument(name="user_id", arg_type=str),
-        Argument(name="permission", arg_type=str),
+        Argument(name="user_id", arg_type=str, sort_key=0),
+        Argument(name="permission", arg_type=str, sort_key=1),
     ],
 )
 set_permissions.commands.append(add_perm_cmd)
