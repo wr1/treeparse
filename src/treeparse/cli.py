@@ -4,7 +4,8 @@ import sys
 from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
-from .models import Group, Command, Option
+from rich.text import Text
+from .models import Group, Command, Option, ColorConfig
 
 
 class Cli(BaseModel):
@@ -16,6 +17,7 @@ class Cli(BaseModel):
     commands: List[Command] = []
     options: List[Option] = []
     max_width: int = 120
+    color_config: ColorConfig = ColorConfig()
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -152,13 +154,124 @@ class Cli(BaseModel):
                 if c.name == p
             )
             current = ch
-        console.print(f"Description: {current.help}")
+        console.print(
+            f"[{self.color_config.requested_help}]Description: {current.help}[/{self.color_config.requested_help}]"
+        )
         console.print("Commands:")
-        align_width = 40
-        root_label = f"{self.name:<{align_width}} {self.help}"
+        align_width = self._compute_max_name_length(path)
+        root_label = self._get_root_label(align_width)
         tree = Tree(root_label)
         self._add_children(tree, self, True, path, align_width)
         console.print(tree)
+
+    def _compute_max_name_length(self, path: List[str]) -> int:
+        """Compute maximum name length for alignment in the visible tree."""
+        max_len = 0
+        current = self
+        for p in path:
+            current = next(
+                c
+                for c in (
+                    current.subgroups + current.commands
+                    if hasattr(current, "subgroups")
+                    else []
+                )
+                if c.name == p
+            )
+
+        def recurse(
+            node: Union["Cli", Group, Command], on_path: bool, remaining_path: List[str]
+        ):
+            nonlocal max_len
+            if not isinstance(node, Cli):
+                opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+                for opt in opts:
+                    flags = sorted(opt.flags, key=lambda f: (-len(f), f))
+                    opt_name = ", ".join(flags)
+                    max_len = max(max_len, len(opt_name))
+            if isinstance(node, Command):
+                return
+            children = sorted(
+                (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
+                key=lambda x: (x.sort_key, x.name),
+            )
+            if on_path and remaining_path:
+                next_name = remaining_path[0]
+                for child in children:
+                    if child.name == next_name:
+                        name_part = self._get_name_part(child)
+                        max_len = max(max_len, len(name_part))
+                        recurse(child, True, remaining_path[1:])
+                        break
+            else:
+                for child in children:
+                    name_part = self._get_name_part(child)
+                    max_len = max(max_len, len(name_part))
+                    recurse(child, False, [])
+
+        recurse(self, True, path)  # Start from root
+        max_len = max(max_len, len(self.name))
+        return max_len
+
+    def _get_name_part(self, node: Union[Group, Command]) -> str:
+        if isinstance(node, Group):
+            return node.name
+        args_str = " ".join(
+            f"[{arg.name.upper()}]"
+            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
+        )
+        return f"{node.name} {args_str}".rstrip()
+
+    def _get_root_label(self, align_width: int) -> Text:
+        label = Text()
+        label.append(self.name, style=self.color_config.app)
+        name_len = label.cell_len
+        padding = align_width - name_len
+        if padding > 0:
+            label.append(" " * padding)
+        if self.help:
+            label.append(" ")
+            label.append(self.help, style=self.color_config.normal_help)
+        return label
+
+    def _get_label(
+        self, node: Union[Group, Command], align_width: int, on_path: bool
+    ) -> Text:
+        help_style = (
+            self.color_config.requested_help
+            if on_path
+            else self.color_config.normal_help
+        )
+        label = Text()
+        if isinstance(node, Group):
+            label.append(node.name, style=self.color_config.group)
+        else:
+            label.append(node.name, style=self.color_config.command)
+            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
+                label.append(" ")
+                label.append(f"[{arg.name.upper()}]", style=self.color_config.argument)
+        name_len = label.cell_len
+        padding = align_width - name_len
+        if padding > 0:
+            label.append(" " * padding)
+        if node.help:
+            label.append(" ")
+            label.append(node.help, style=help_style)
+        return label
+
+    def _get_option_label(self, opt: Option, align_width: int) -> Text:
+        label = Text()
+        flags = sorted(opt.flags, key=lambda f: (-len(f), f))
+        flags_str = ", ".join(flags)
+        label.append(flags_str, style=self.color_config.option)
+        name_len = label.cell_len
+        padding = align_width - name_len
+        if padding > 0:
+            label.append(" " * padding)
+        if opt.help:
+            label.append("    ")
+            label.append(opt.help, style=self.color_config.option_help)
+        return label
 
     def _add_children(
         self,
@@ -171,9 +284,7 @@ class Cli(BaseModel):
         if not isinstance(node, Cli):
             opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
             for opt in opts:
-                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                opt_name = ", ".join(flags)
-                opt_label = f"{opt_name:<{align_width}} {opt.help}"
+                opt_label = self._get_option_label(opt, align_width)
                 current_tree.add(opt_label)
         if isinstance(node, Command):
             return
@@ -185,7 +296,7 @@ class Cli(BaseModel):
             next_name = remaining_path[0]
             for child in children:
                 if child.name == next_name:
-                    child_label = self._get_label(child, align_width)
+                    child_label = self._get_label(child, align_width, True)
                     child_tree = current_tree.add(child_label)
                     self._add_children(
                         child_tree, child, True, remaining_path[1:], align_width
@@ -193,16 +304,6 @@ class Cli(BaseModel):
                     break
         else:
             for child in children:
-                child_label = self._get_label(child, align_width)
+                child_label = self._get_label(child, align_width, False)
                 child_tree = current_tree.add(child_label)
                 self._add_children(child_tree, child, False, [], align_width)
-
-    def _get_label(self, node: Union[Group, Command], align_width: int) -> str:
-        if isinstance(node, Group):
-            return f"{node.name:<{align_width}} {node.help}"
-        args_str = " ".join(
-            f"[{arg.name.upper()}]"
-            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
-        )
-        cmd_name = f"{node.name} {args_str}".rstrip()
-        return f"{cmd_name:<{align_width}} {node.help}"
