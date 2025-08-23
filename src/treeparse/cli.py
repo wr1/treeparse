@@ -104,7 +104,13 @@ class Cli(BaseModel):
         if getattr(args, "help", False) or not hasattr(args, "func"):
             self.print_help(path)
         else:
-            args.func(args)
+            # Extract relevant args, excluding internal ones
+            arg_dict = {
+                k: v
+                for k, v in vars(args).items()
+                if not k.startswith("command_") and k not in ("func", "help")
+            }
+            args.func(**arg_dict)
 
     def print_help(self, path: List[str]):
         """Print custom tree help."""
