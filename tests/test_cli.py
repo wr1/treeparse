@@ -31,7 +31,7 @@ def test_cli_help_output(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test [OPTIONS] COMMAND [ARGS]..." in captured.out
+    assert "Usage: test  ...  (--json, -h, --help)" in captured.out
 
 
 def test_cli_with_command():
