@@ -2,7 +2,6 @@ from typing import List, Union
 import argparse
 import sys
 import json
-from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
