@@ -197,3 +197,18 @@ def test_cli_flag_option():
     app.run()
     assert called[0]
     assert captured_flag is True
+
+
+def test_super_cli():
+    called = [False]
+
+    def callback():
+        called[0] = True
+
+    sub_cmd = command(name="subcmd", callback=callback)
+    sub_app = cli(name="sub", help="Sub CLI", commands=[sub_cmd])
+    super_app = cli(name="test_super", help="Super CLI", subgroups=[sub_app])
+    sys.argv = ["test_super", "sub", "subcmd"]
+    super_app.run()
+    assert called[0]
+
