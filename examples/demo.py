@@ -118,8 +118,7 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of ",
-            # the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
+            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of lines",
             arg_type=int,
             sort_key=0,
             default=2,

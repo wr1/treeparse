@@ -340,7 +340,7 @@ class cli(group):
         collect_recurse(self, True, path, 0)
         selected_depth = len(path)
         root_label = self._get_root_label(max_start, 0, True)
-        tree = Tree(root_label)
+        tree = Tree(root_label, guide_style=self.colors.guide)
         self._add_children(tree, self, True, path, max_start, 0, selected_depth)
         console.print(tree)
 
