@@ -91,6 +91,7 @@ class cli(group):
                     {
                         **opt.model_dump(exclude={"arg_type"}),
                         "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
+                        "choices": opt.choices,
                     }
                     for opt in sorted(
                         node.options, key=lambda x: (x.sort_key, x.flags[0])
@@ -103,6 +104,7 @@ class cli(group):
                     {
                         **arg.model_dump(exclude={"arg_type"}),
                         "arg_type": arg.arg_type.__name__,
+                        "choices": arg.choices,
                     }
                     for arg in sorted(
                         node.arguments, key=lambda x: (x.sort_key, x.name)
@@ -143,6 +145,8 @@ class cli(group):
                 kwargs["type"] = opt.arg_type if opt.arg_type != bool else str2bool
                 if opt.nargs is not None:
                     kwargs["nargs"] = opt.nargs
+            if opt.choices is not None:
+                kwargs["choices"] = opt.choices
             parser.add_argument(*opt.flags, **kwargs)
         self._build_subparser(parser, self, 1, max_depth)
         return parser
@@ -177,6 +181,8 @@ class cli(group):
                         )
                         if opt.nargs is not None:
                             kwargs["nargs"] = opt.nargs
+                    if opt.choices is not None:
+                        kwargs["choices"] = opt.choices
                     child_parser.add_argument(*opt.flags, **kwargs)
                 if isinstance(child, command):
                     for arg in child.arguments:
@@ -192,6 +198,8 @@ class cli(group):
                             kwargs["default"] = arg.default
                         elif arg.nargs == "?":
                             kwargs["default"] = None
+                        if arg.choices is not None:
+                            kwargs["choices"] = arg.choices
                         child_parser.add_argument(arg.name, **kwargs)
                     child_parser.set_defaults(func=child.callback)
                 else:
@@ -305,7 +313,10 @@ class cli(group):
                 opt_len = len(opt_name)
                 if self.show_types:
                     type_name = "bool" if opt.is_flag else opt.arg_type.__name__
-                    opt_len += len(f":{type_name}")
+                    opt_len += len(f": {type_name}")
+                if opt.choices is not None:
+                    choices_str = f" ({'|'.join(map(str, opt.choices))})"
+                    opt_len += len(choices_str)
                 opt_prefix = (depth + 1) * 4
                 max_start = max(max_start, opt_prefix + opt_len)
             if isinstance(node, command):
@@ -337,8 +348,13 @@ class cli(group):
         args_parts = []
         for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
+            extra = []
             if self.show_types:
-                part += f",{arg.arg_type.__name__}"
+                extra.append(arg.arg_type.__name__)
+            if arg.choices is not None:
+                extra.append(f"({'|'.join(map(str, arg.choices))})")
+            if extra:
+                part += f", {' '.join(extra)}"
             part += "]"
             args_parts.append(part)
         args_str = " ".join(args_parts)
@@ -420,10 +436,17 @@ class cli(group):
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
                 label.append(" ")
                 label.append(f"[{arg.name.upper()}", style=arg_style)
+                type_part = ""
                 if self.show_types:
+                    type_part = arg.arg_type.__name__
+                choices_part = ""
+                if arg.choices is not None:
+                    choices_part = f"({'|'.join(map(str, arg.choices))})"
+                if type_part or choices_part:
+                    separator = " " if type_part and choices_part else ""
                     label.append(
                         Text.from_markup(
-                            f",[{self.colors.type_color}]{arg.arg_type.__name__}[/{self.colors.type_color}]"
+                            f",[{self.colors.type_color}]{type_part}{separator}{choices_part}[/{self.colors.type_color}]"
                         )
                     )
                 label.append("]", style=arg_style)
@@ -455,15 +478,15 @@ class cli(group):
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
         flags_str = ", ".join(flags)
         label.append(flags_str, style=option_style)
-        name_len = len(flags_str)
+        type_part = ""
         if self.show_types:
             type_name = "bool" if opt.is_flag else opt.arg_type.__name__
-            label.append(
-                Text.from_markup(
-                    f": [{self.colors.type_color}]{type_name}[/{self.colors.type_color}]"
-                )
-            )
-            name_len = label.cell_len
+            type_part = f": {type_name}"
+        choices_part = ""
+        if opt.choices is not None:
+            choices_part = f" ({'|'.join(map(str, opt.choices))})"
+        label.append(type_part + choices_part, style=self.colors.type_color)
+        name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         label.append(" " * padding)
@@ -505,9 +528,7 @@ class cli(group):
         is_ancestor = depth < selected_depth
         opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
         for opt in opts:
-            opt_label = self._get_option_label(
-                opt, max_start, depth + 1, is_ancestor
-            )
+            opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
         if isinstance(node, command):
             return
@@ -541,4 +562,3 @@ class cli(group):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
-
