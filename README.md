@@ -5,6 +5,8 @@
 CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
 This provides very compact full overview help, showing hierarchy. 
 
+![gif](docs/assets/output.gif)
+
 ## Features
 
 - Define CLI structure using Pydantic models for groups, commands, arguments, and options.
