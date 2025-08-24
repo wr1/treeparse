@@ -13,3 +13,4 @@ class color_config(BaseModel):
     requested_help: str = "bold white"
     normal_help: str = "white"
     type_color: str = "dim white"
+    connector: str = "dim blue"

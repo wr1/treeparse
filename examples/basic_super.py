@@ -1,12 +1,14 @@
 from basic import app as basic_app
 from demo import app as demo_app
 from list_demo import app as list_demo_app
+from choice_demo import app as choice_demo_app
 from treeparse import cli
 
 super_app = cli(
     name="basic_super.py",
+    line_connect=True,
     help="A super CLI that includes the basic CLI as a sub-CLI.",
-    subgroups=[basic_app, demo_app, list_demo_app],
+    subgroups=[basic_app, demo_app, list_demo_app, choice_demo_app],
 )
 
 

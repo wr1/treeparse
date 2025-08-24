@@ -2,6 +2,7 @@ from typing import List, Union
 import argparse
 import sys
 import json
+from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
@@ -50,6 +51,7 @@ class cli(group):
     colors: color_config = color_config()
     show_types: bool = False
     show_defaults: bool = False
+    line_connect: bool = False
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -392,15 +394,25 @@ class cli(group):
         name_len = len(self.name)
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
-        label.append(" " * padding)
         if self.help:
-            label.append(" ")
             help_lines = self._wrap_help(self.help, self.max_width - (max_start + 1))
-            label.append(help_lines[0], style=help_style)
-            for hl in help_lines[1:]:
-                label.append("\n")
-                label.append(" " * (name_len + padding + 1))
-                label.append(hl, style=help_style)
+            if self.line_connect:
+                label.append(Text("─" * (padding + 1), style=self.colors.connector))
+                label.append(help_lines[0], style=help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=help_style)
+            else:
+                label.append(" " * padding)
+                label.append(" ")
+                label.append(help_lines[0], style=help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=help_style)
+        else:
+            label.append(" " * padding)
         return label
 
     def _get_label(
@@ -453,15 +465,25 @@ class cli(group):
             name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
-        label.append(" " * padding)
         if node.help:
-            label.append(" ")
             help_lines = self._wrap_help(node.help, self.max_width - (max_start + 1))
-            label.append(help_lines[0], style=help_style)
-            for hl in help_lines[1:]:
-                label.append("\n")
-                label.append(" " * (name_len + padding + 1))
-                label.append(hl, style=help_style)
+            if self.line_connect:
+                label.append(Text("─" * (padding + 1), style=self.colors.connector))
+                label.append(help_lines[0], style=help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=help_style)
+            else:
+                label.append(" " * padding)
+                label.append(" ")
+                label.append(help_lines[0], style=help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=help_style)
+        else:
+            label.append(" " * padding)
         return label
 
     def _get_option_label(
@@ -489,15 +511,25 @@ class cli(group):
         name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
-        label.append(" " * padding)
         if opt.help:
-            label.append(" ")
             help_lines = self._wrap_help(opt.help, self.max_width - (max_start + 1))
-            label.append(help_lines[0], style=option_help_style)
-            for hl in help_lines[1:]:
-                label.append("\n")
-                label.append(" " * (name_len + padding + 1))
-                label.append(hl, style=option_help_style)
+            if self.line_connect:
+                label.append(Text("─" * (padding + 1), style=self.colors.connector))
+                label.append(help_lines[0], style=option_help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=option_help_style)
+            else:
+                label.append(" " * padding)
+                label.append(" ")
+                label.append(help_lines[0], style=option_help_style)
+                for hl in help_lines[1:]:
+                    label.append("\n")
+                    label.append(" " * (name_len + padding + 1))
+                    label.append(hl, style=option_help_style)
+        else:
+            label.append(" " * padding)
         if self.show_defaults and opt.default is not None:
             default_str = f" (default: {opt.default})"
             if opt.help:
@@ -528,7 +560,9 @@ class cli(group):
         is_ancestor = depth < selected_depth
         opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
         for opt in opts:
-            opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
+            opt_label = self._get_option_label(
+                opt, max_start, depth + 1, is_ancestor
+            )
             current_tree.add(opt_label)
         if isinstance(node, command):
             return
@@ -562,3 +596,4 @@ class cli(group):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
+
