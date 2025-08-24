@@ -12,4 +12,5 @@ class option(BaseModel):
     default: Any = None
     nargs: Union[int, str, None] = None
     is_flag: bool = False
+    choices: Optional[List[Any]] = None
     sort_key: int = 0

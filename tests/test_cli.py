@@ -211,4 +211,3 @@ def test_super_cli():
     sys.argv = ["test_super", "sub", "subcmd"]
     super_app.run()
     assert called[0]
-

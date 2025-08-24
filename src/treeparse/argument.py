@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 from pydantic import BaseModel
 
 
@@ -11,4 +11,5 @@ class argument(BaseModel):
     help: str = ""
     nargs: Union[int, str, None] = None
     default: Any = None
+    choices: Optional[List[Any]] = None
     sort_key: int = 0

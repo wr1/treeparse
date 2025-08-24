@@ -64,3 +64,34 @@ class command(BaseModel):
                 + "; ".join(type_mismatches)
             )
             raise ValueError(error_msg)
+        # Check defaults against choices
+        for arg in self.arguments:
+            if arg.choices is not None and arg.default is not None:
+                if arg.nargs in ["*", "+"] and isinstance(arg.default, list):
+                    for d in arg.default:
+                        if d not in arg.choices:
+                            raise ValueError(
+                                f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                            )
+                else:
+                    if arg.default not in arg.choices:
+                        raise ValueError(
+                            f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                        )
+        for opt in self.options:
+            if opt.is_flag and opt.choices is not None:
+                raise ValueError(
+                    f"Choices not applicable for flag option '{opt.flags[0]}' in command '{self.name}'"
+                )
+            if opt.choices is not None and opt.default is not None:
+                if opt.nargs in ["*", "+"] and isinstance(opt.default, list):
+                    for d in opt.default:
+                        if d not in opt.choices:
+                            raise ValueError(
+                                f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                            )
+                else:
+                    if opt.default not in opt.choices:
+                        raise ValueError(
+                            f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                        )

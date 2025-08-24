@@ -18,6 +18,7 @@ demo = "examples.demo:main"
 basic = "examples.basic:main"
 list_demo = "examples.list_demo:main"
 basic_super = "examples.basic_super:main"
+choice_demo = "examples.choice_demo:main"
 
 [dependency-groups]
 dev = [
