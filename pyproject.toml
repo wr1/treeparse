@@ -17,6 +17,7 @@ dependencies = [
 demo = "examples.demo:main"
 basic = "examples.basic:main"
 list_demo = "examples.list_demo:main"
+basic_super = "examples.basic_super:main"
 
 [dependency-groups]
 dev = [
@@ -24,5 +25,6 @@ dev = [
     "pytest-cov~=4.0",
     "ruff>=0.0.260,<0.0.261",
 ]
+
 
 

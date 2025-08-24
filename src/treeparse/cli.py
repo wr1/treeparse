@@ -44,14 +44,9 @@ class RichArgumentParser(argparse.ArgumentParser):
         self.exit(2)
 
 
-class cli(BaseModel):
+class cli(group):
     """CLI model with methods."""
 
-    name: str
-    help: str = ""
-    subgroups: List[group] = []
-    commands: List[command] = []
-    options: List[option] = []
     max_width: int = 120
     colors: color_config = color_config()
     show_types: bool = False
@@ -88,7 +83,7 @@ class cli(BaseModel):
     def structure_dict(self):
         """Return a dictionary representation of the CLI structure."""
 
-        def recurse(node: Union["cli", group, command]):
+        def recurse(node: Union["cli", group, command], is_root: bool = True):
             d = {"name": node.name, "help": node.help}
             if hasattr(node, "sort_key"):
                 d["sort_key"] = node.sort_key
@@ -96,9 +91,7 @@ class cli(BaseModel):
                 d["options"] = [
                     {
                         **opt.model_dump(exclude={"arg_type"}),
-                        "arg_type": opt.arg_type.__name__
-                        if not opt.is_flag
-                        else "bool",
+                        "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
                     }
                     for opt in sorted(
                         node.options, key=lambda x: (x.sort_key, x.flags[0])
@@ -116,23 +109,24 @@ class cli(BaseModel):
                         node.arguments, key=lambda x: (x.sort_key, x.name)
                     )
                 ]
-            elif isinstance(node, group):
-                d["type"] = "group"
             else:
-                d["type"] = "cli"
+                if is_root:
+                    d["type"] = "cli"
+                else:
+                    d["type"] = "group"
             if hasattr(node, "subgroups"):
                 d["subgroups"] = [
-                    recurse(g)
+                    recurse(g, is_root=False)
                     for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))
                 ]
             if hasattr(node, "commands"):
                 d["commands"] = [
-                    recurse(c)
+                    recurse(c, is_root=False)
                     for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))
                 ]
             return d
 
-        return recurse(self)
+        return recurse(self, is_root=True)
 
     def build_parser(self) -> argparse.ArgumentParser:
         """Build argparse parser from CLI structure."""
@@ -302,23 +296,19 @@ class cli(BaseModel):
             depth: int,
         ):
             nonlocal max_start
-            if isinstance(node, cli):
-                name_len = len(node.name)
-            else:
-                name_len = len(self._get_name_part(node))
+            name_len = len(self._get_name_part(node))
             prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
-            if not isinstance(node, cli):
-                opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-                for opt in opts:
-                    flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                    opt_name = ", ".join(flags)
-                    opt_len = len(opt_name)
-                    if self.show_types:
-                        type_name = "bool" if opt.is_flag else opt.arg_type.__name__
-                        opt_len += len(f":{type_name}")
-                    opt_prefix = (depth + 1) * 4
-                    max_start = max(max_start, opt_prefix + opt_len)
+            opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+            for opt in opts:
+                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
+                opt_name = ", ".join(flags)
+                opt_len = len(opt_name)
+                if self.show_types:
+                    type_name = "bool" if opt.is_flag else opt.arg_type.__name__
+                    opt_len += len(f":{type_name}")
+                opt_prefix = (depth + 1) * 4
+                max_start = max(max_start, opt_prefix + opt_len)
             if isinstance(node, command):
                 return
             children = sorted(
@@ -514,13 +504,12 @@ class cli(BaseModel):
         selected_depth: int,
     ):
         is_ancestor = depth < selected_depth
-        if not isinstance(node, cli):
-            opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-            for opt in opts:
-                opt_label = self._get_option_label(
-                    opt, max_start, depth + 1, is_ancestor
-                )
-                current_tree.add(opt_label)
+        opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+        for opt in opts:
+            opt_label = self._get_option_label(
+                opt, max_start, depth + 1, is_ancestor
+            )
+            current_tree.add(opt_label)
         if isinstance(node, command):
             return
         children = sorted(
@@ -553,3 +542,4 @@ class cli(BaseModel):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
+
