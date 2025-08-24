@@ -289,13 +289,13 @@ class cli(group):
         path_str = " ".join(path)
         if path_str:
             path_str += " "
-        usage = f"Usage: {self.name} {path_str}[OPTIONS] COMMAND [ARGS]..."
+        usage = f"[bold]Usage: {self.name} {path_str} ... [yellow]--json, -h, --help"
         console.print(usage)
         current = self._get_node_from_path(path)
         console.print(
             f"[{self.colors.requested_help}]Description: {current.help}[/{self.colors.requested_help}]"
         )
-        console.print("Commands:")
+        # console.print("[italic cyan]Commands:")
         max_start = 0
 
         def collect_recurse(
@@ -560,9 +560,7 @@ class cli(group):
         is_ancestor = depth < selected_depth
         opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
         for opt in opts:
-            opt_label = self._get_option_label(
-                opt, max_start, depth + 1, is_ancestor
-            )
+            opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
         if isinstance(node, command):
             return
@@ -596,4 +594,3 @@ class cli(group):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
-
