@@ -96,3 +96,64 @@ def test_command_validation_list_mismatch():
     with pytest.raises(ValueError) as exc:
         cmd.validate()
     assert "type mismatch" in str(exc.value)
+
+
+def test_command_validation_choices_default():
+    def callback(arg1: int):
+        pass
+
+    # Valid default
+    cmd = command(
+        name="test",
+        callback=callback,
+        arguments=[argument(name="arg1", arg_type=int, default=3, choices=[1, 2, 3])],
+    )
+    cmd.validate()  # Should not raise
+
+    # Invalid default
+    with pytest.raises(ValueError) as exc:
+        cmd = command(
+            name="test",
+            callback=callback,
+            arguments=[argument(name="arg1", arg_type=int, default=4, choices=[1, 2, 3])],
+        )
+        cmd.validate()
+    assert "Default value 4 not in choices [1, 2, 3]" in str(exc.value)
+
+
+def test_command_validation_list_choices_default():
+    def callback(args: List[int]):
+        pass
+
+    # Valid list default
+    cmd = command(
+        name="test",
+        callback=callback,
+        arguments=[argument(name="args", nargs="*", arg_type=int, default=[1, 2], choices=[1, 2, 3])],
+    )
+    cmd.validate()  # Should not raise
+
+    # Invalid list default
+    with pytest.raises(ValueError) as exc:
+        cmd = command(
+            name="test",
+            callback=callback,
+            arguments=[argument(name="args", nargs="*", arg_type=int, default=[1, 4], choices=[1, 2, 3])],
+        )
+        cmd.validate()
+    assert "Default value 4 not in choices [1, 2, 3]" in str(exc.value)
+
+
+def test_command_validation_flag_with_choices():
+    def callback(flag: bool):
+        pass
+
+    with pytest.raises(ValueError) as exc:
+        cmd = command(
+            name="test",
+            callback=callback,
+            options=[option(flags=["--flag"], is_flag=True, choices=[True, False])],
+        )
+        cmd.validate()
+    assert "Choices not applicable for flag option '--flag'" in str(exc.value)
+

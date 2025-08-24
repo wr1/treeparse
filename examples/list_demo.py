@@ -20,6 +20,7 @@ def tag(tags: List[str]):
 app = cli(
     name="list_demo.py",
     help="Demo of list arguments and options.",
+    line_connect=True,
     max_width=135,
     show_types=True,
 )
@@ -29,7 +30,13 @@ echo_cmd = command(
     help="Echo the provided words.",
     callback=echo,
     arguments=[
-        argument(name="words", nargs="*", arg_type=str, sort_key=0),
+        argument(
+            name="words",
+            nargs="*",
+            arg_type=str,
+            sort_key=0,
+            choices=["hello", "world"],
+        ),
     ],
 )
 app.commands.append(echo_cmd)
