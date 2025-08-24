@@ -1,8 +1,3 @@
-# import sys
-# from pathlib import Path
-
-# sys.path.append(str(Path(__file__).parent))
-
 from basic import app as basic_app
 from demo import app as demo_app
 from list_demo import app as list_demo_app

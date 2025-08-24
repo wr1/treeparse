@@ -1,3 +1,5 @@
+![Deploy](https://github.com/wr1/treeparse/actions/workflows/ci.yml/badge.svg)![Version](https://img.shields.io/github/v/release/wr1/treeparse)
+
 # Treeparse
 
 CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
