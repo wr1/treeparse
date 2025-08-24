@@ -289,7 +289,7 @@ class cli(group):
         path_str = " ".join(path)
         if path_str:
             path_str += " "
-        usage = f"[bold]Usage: {self.name} {path_str} ... [yellow]--json, -h, --help"
+        usage = f"[bold]Usage: {self.name} {path_str} ... [rgb(45,45,45)] (--json, -h, --help)"
         console.print(usage)
         current = self._get_node_from_path(path)
         console.print(

@@ -4,6 +4,9 @@ from list_demo import app as list_demo_app
 from choice_demo import app as choice_demo_app
 from treeparse import cli
 
+basic_app.name = "basic"
+basic_app.sort_key = 100
+
 super_app = cli(
     name="basic_super.py",
     line_connect=True,

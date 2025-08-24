@@ -3,7 +3,7 @@
 # Treeparse
 
 CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
-This yields a compact help view including the CLI's *structure*. 
+This provides very compact full overview help, showing hierarchy. 
 
 ## Features
 
