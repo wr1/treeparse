@@ -2,7 +2,7 @@ import pytest
 import sys
 import json
 from typing import List
-from treeparse import cli, command, argument, option, chain
+from treeparse import cli, command, argument, option, Chain
 
 
 def test_cli_build_parser():
@@ -485,7 +485,7 @@ def test_chain_execution():
 
     cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
     cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)])
-    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 
     sys.argv = ["test", "chain", "42", "hello"]
@@ -502,7 +502,7 @@ def test_chain_help(capsys):
 
     cmd1 = command(name="cmd1", callback=cb1)
     cmd2 = command(name="cmd2", callback=cb2)
-    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 
     sys.argv = ["test", "--help"]
@@ -511,3 +511,39 @@ def test_chain_help(capsys):
     captured = capsys.readouterr()
     assert "chain" in captured.out
     assert "cmd1 ➜ cmd2" in captured.out
+
+
+def test_required_option():
+    def callback(opt: str):
+        pass
+
+    opt = option(flags=["--opt"], arg_type=str, required=True)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    # Without option, should error
+    sys.argv = ["test", "cmd"]
+    with pytest.raises(SystemExit):
+        app.run()
+
+    # With option
+    sys.argv = ["test", "cmd", "--opt", "value"]
+    app.run()
+
+
+def test_required_flag():
+    def callback(flag: bool):
+        pass
+
+    opt = option(flags=["--flag"], is_flag=True, required=True)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    # Without flag
+    sys.argv = ["test", "cmd"]
+    with pytest.raises(SystemExit):
+        app.run()
+
+    # With flag
+    sys.argv = ["test", "cmd", "--flag"]
+    app.run()

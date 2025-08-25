@@ -357,7 +357,7 @@ class cli(group):
             self.print_help(path)
             sys.exit(0)
         current = self._get_node_from_path(path)
-        missing = []
+        missing_args = []
         for arg in current.effective_arguments:
             dest = arg.dest or arg.name
             if (
@@ -365,9 +365,18 @@ class cli(group):
                 and arg.default is None
                 and getattr(args, dest, None) is None
             ):
-                missing.append(arg.name)
-        if missing:
-            parser.error("the following arguments are required: " + ", ".join(missing))
+                missing_args.append(arg.name)
+        if missing_args:
+            parser.error("the following arguments are required: " + ", ".join(missing_args))
+        missing_opts = []
+        for opt in current.effective_options:
+            if opt.required:
+                dest = opt.get_dest()
+                value = getattr(args, dest, None)
+                if value == opt.default:
+                    missing_opts.append(", ".join(opt.flags))
+        if missing_opts:
+            parser.error("the following options are required: " + ", ".join(missing_opts))
         arg_dict = {
             k: v
             for k, v in vars(args).items()
