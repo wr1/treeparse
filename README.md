@@ -15,7 +15,7 @@ This provides very compact full overview help, showing hierarchy.
 - JSON help output.
 - Easily extensible and modular.
 - Command chaining with aggregate arguments and options.
-- Group-level options inherited by subcommands.
+- Group-level options and arguments propagated to subcommands.
 
 ## Installation
 
@@ -81,6 +81,10 @@ See `examples/chain_demo.py` for demonstration of command chaining.
 ### Group Option Demo Example
 
 See `examples/group_option_demo.py` for demonstration of group-level options.
+
+### Group Argument Demo Example
+
+See `examples/group_arg_demo.py` for demonstration of group-level arguments.
 
 ## Development
 

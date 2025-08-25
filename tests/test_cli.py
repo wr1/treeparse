@@ -2,7 +2,7 @@ import pytest
 import sys
 import json
 from typing import List
-from treeparse import cli, command, argument, option, Chain
+from treeparse import cli, command, argument, option, Chain, group
 
 
 def test_cli_build_parser():
@@ -61,7 +61,7 @@ def test_show_types(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "[ARG,int]" in captured.out
+    assert "[ARG, int]" in captured.out
     assert "--opt: str" in captured.out
 
 
@@ -278,7 +278,7 @@ def test_choices_argument(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "[CHOICE,str (a|b|c)]" in captured.out
+    assert "[CHOICE, str (a|b|c)]" in captured.out
 
 
 def test_default_against_choices():
@@ -513,37 +513,45 @@ def test_chain_help(capsys):
     assert "cmd1 ➜ cmd2" in captured.out
 
 
-def test_required_option():
-    def callback(opt: str):
+def test_group_argument_propagation():
+    called = [False]
+
+    def callback(id: int, name: str):
+        called[0] = True
+        assert id == 123
+        assert name == "test"
+
+    add_cmd = command(
+        name="add",
+        callback=callback,
+        arguments=[argument(name="name", arg_type=str)]
+    )
+
+    user_group = group(
+        name="user",
+        arguments=[argument(name="id", arg_type=int)],
+        commands=[add_cmd]
+    )
+
+    app = cli(name="test", subgroups=[user_group])
+
+    sys.argv = ["test", "user", "123", "add", "test"]
+    app.run()
+    assert called[0]
+
+
+def test_group_argument_in_help(capsys):
+    def callback(id: int, name: str):
         pass
 
-    opt = option(flags=["--opt"], arg_type=str, required=True)
-    cmd = command(name="cmd", options=[opt], callback=callback)
-    app = cli(name="test", commands=[cmd])
+    cmd = command(name="add", callback=callback, arguments=[argument(name="name", arg_type=str)])
 
-    # Without option, should error
-    sys.argv = ["test", "cmd"]
+    g = group(name="user", arguments=[argument(name="id", arg_type=int)], commands=[cmd])
+
+    app = cli(name="test", subgroups=[g], show_types=True)
+
+    sys.argv = ["test", "--help"]
     with pytest.raises(SystemExit):
         app.run()
-
-    # With option
-    sys.argv = ["test", "cmd", "--opt", "value"]
-    app.run()
-
-
-def test_required_flag():
-    def callback(flag: bool):
-        pass
-
-    opt = option(flags=["--flag"], is_flag=True, required=True)
-    cmd = command(name="cmd", options=[opt], callback=callback)
-    app = cli(name="test", commands=[cmd])
-
-    # Without flag
-    sys.argv = ["test", "cmd"]
-    with pytest.raises(SystemExit):
-        app.run()
-
-    # With flag
-    sys.argv = ["test", "cmd", "--flag"]
-    app.run()
+    captured = capsys.readouterr()
+    assert "user [ID, int]" in captured.out

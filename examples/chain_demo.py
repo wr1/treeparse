@@ -30,7 +30,7 @@ cmd2 = command(
 chain_cmd = Chain(name="pipeline", sort_key=100, chained_commands=[cmd1, cmd2])
 
 app = cli(
-    name="chain_demo.py",
+    name="chain_demo",
     help="Demo of command chaining",
     commands=[cmd1, cmd2, chain_cmd],
     show_types=True,

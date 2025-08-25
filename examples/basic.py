@@ -10,7 +10,7 @@ def hello1(name: str):
 
 
 app = cli(
-    name="basic.py",
+    name="basic",
     help="A basic CLI example.",
     commands=[
         command(name="hello", help="Print hello world.", callback=hello, sort_key=-100)

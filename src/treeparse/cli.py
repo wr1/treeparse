@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Union
 import argparse
 import sys
 import json
@@ -105,7 +105,7 @@ class cli(group):
                     "choices": opt.choices,
                 }
                 for opt in sorted(
-                    node.effective_options, key=lambda x: (x.sort_key, x.flags[0])
+                    node.options, key=lambda x: (x.sort_key, x.flags[0])
                 )
             ]
             d["arguments"] = [
@@ -115,7 +115,7 @@ class cli(group):
                     "choices": arg.choices,
                 }
                 for arg in sorted(
-                    node.effective_arguments, key=lambda x: (x.sort_key, x.name)
+                    node.arguments, key=lambda x: (x.sort_key, x.name)
                 )
             ]
             if isinstance(node, command):
@@ -150,7 +150,17 @@ class cli(group):
         parser = RichArgumentParser(
             prog=self.display_name, description=self.help, add_help=False
         )
-        for opt in self.effective_options:
+        self._add_args_and_opts_to_parser(parser, self.arguments, self.options)
+        self._build_subparser(parser, self, 1, max_depth, self.arguments, self.options)
+        return parser
+
+    def _add_args_and_opts_to_parser(
+        self,
+        parser: argparse.ArgumentParser,
+        args: List[argument],
+        opts: List[option]
+    ):
+        for opt in opts:
             dest = opt.get_dest()
             kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
             if opt.is_flag:
@@ -161,9 +171,25 @@ class cli(group):
                     kwargs["nargs"] = opt.nargs
             if opt.choices is not None:
                 kwargs["choices"] = opt.choices
+            if opt.required:
+                kwargs["required"] = True
             parser.add_argument(*opt.flags, **kwargs)
-        self._build_subparser(parser, self, 1, max_depth)
-        return parser
+        for arg in args:
+            kwargs = {
+                "help": arg.help,
+                "type": arg.arg_type if arg.arg_type != bool else str2bool,
+            }
+            if arg.dest is not None:
+                kwargs["dest"] = arg.dest
+            if arg.nargs is not None:
+                kwargs["nargs"] = arg.nargs
+            if arg.default is not None:
+                kwargs["default"] = arg.default
+            elif arg.nargs == "?":
+                kwargs["default"] = None
+            if arg.choices is not None:
+                kwargs["choices"] = arg.choices
+            parser.add_argument(arg.name, **kwargs)
 
     def _build_subparser(
         self,
@@ -171,6 +197,8 @@ class cli(group):
         node: Union["cli", group],
         depth: int,
         max_depth: int,
+        inherited_args: List[argument],
+        inherited_opts: List[option]
     ):
         if depth > max_depth:
             return
@@ -184,58 +212,31 @@ class cli(group):
                 child_parser = subparsers.add_parser(
                     child.display_name, help=child.help, add_help=False
                 )
-                for opt in child.effective_options:
-                    dest = opt.get_dest()
-                    kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
-                    if opt.is_flag:
-                        kwargs["action"] = "store_true"
-                    else:
-                        kwargs["type"] = (
-                            opt.arg_type if opt.arg_type != bool else str2bool
-                        )
-                        if opt.nargs is not None:
-                            kwargs["nargs"] = opt.nargs
-                    if opt.choices is not None:
-                        kwargs["choices"] = opt.choices
-                    child_parser.add_argument(*opt.flags, **kwargs)
-                if isinstance(child, (command, Chain)):
-                    for arg in child.effective_arguments:
-                        kwargs = {
-                            "help": arg.help,
-                            "type": arg.arg_type if arg.arg_type != bool else str2bool,
-                        }
-                        if arg.dest is not None:
-                            kwargs["dest"] = arg.dest
-                        if arg.nargs is not None:
-                            kwargs["nargs"] = arg.nargs
-                        if arg.default is not None:
-                            kwargs["default"] = arg.default
-                        elif arg.nargs == "?":
-                            kwargs["default"] = None
-                        if arg.choices is not None:
-                            kwargs["choices"] = arg.choices
-                        child_parser.add_argument(arg.name, **kwargs)
+                if isinstance(child, group):
+                    self._add_args_and_opts_to_parser(child_parser, child.arguments, child.options)
+                    self._build_subparser(child_parser, child, depth + 1, max_depth, inherited_args + child.arguments, inherited_opts + child.options)
+                else:  # command or Chain
+                    self._add_args_and_opts_to_parser(child_parser, child.effective_arguments, child.effective_options)
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
                     else:
                         child_parser.set_defaults(func=chain_runner, chain_obj=child)
-                else:
-                    self._build_subparser(child_parser, child, depth + 1, max_depth)
 
     def _validate(self):
-        """Validate all commands in the CLI structure, considering inherited options."""
+        """Validate all commands in the CLI structure, considering inherited options and arguments."""
 
-        def recurse(node: Union["cli", group, command, Chain], inherited_options: List[option] = []):
-            current_inherited = inherited_options + node.effective_options
+        def recurse(node: Union["cli", group, command, Chain], inherited_args: List[argument] = [], inherited_opts: List[option] = []):
             if isinstance(node, command):
+                effective_args = inherited_args + node.arguments
+                effective_opts = inherited_opts + node.options
                 provided = {}
-                for arg in node.effective_arguments:
+                for arg in effective_args:
                     dest = arg.dest or arg.name
                     arg_type = arg.arg_type
                     if arg.nargs in ["*", "+"]:
                         arg_type = List[arg_type]
                     provided[dest] = arg_type
-                for opt in current_inherited:
+                for opt in effective_opts:
                     dest = opt.get_dest()
                     opt_type = bool if opt.is_flag else opt.arg_type
                     if opt.nargs in ["*", "+"] and not opt.is_flag:
@@ -307,11 +308,11 @@ class cli(group):
                 node.validate()
             else:
                 for cmd in node.commands:
-                    recurse(cmd, current_inherited)
+                    recurse(cmd, inherited_args + node.arguments, inherited_opts + node.options)
                 for grp in node.subgroups:
-                    recurse(grp, current_inherited)
+                    recurse(grp, inherited_args + node.arguments, inherited_opts + node.options)
 
-        recurse(self, [])
+        recurse(self, [], [])
 
     def run(self):
         """Run the CLI."""
@@ -357,7 +358,7 @@ class cli(group):
             self.print_help(path)
             sys.exit(0)
         current = self._get_node_from_path(path)
-        missing_args = []
+        missing = []
         for arg in current.effective_arguments:
             dest = arg.dest or arg.name
             if (
@@ -365,18 +366,9 @@ class cli(group):
                 and arg.default is None
                 and getattr(args, dest, None) is None
             ):
-                missing_args.append(arg.name)
-        if missing_args:
-            parser.error("the following arguments are required: " + ", ".join(missing_args))
-        missing_opts = []
-        for opt in current.effective_options:
-            if opt.required:
-                dest = opt.get_dest()
-                value = getattr(args, dest, None)
-                if value == opt.default:
-                    missing_opts.append(", ".join(opt.flags))
-        if missing_opts:
-            parser.error("the following options are required: " + ", ".join(missing_opts))
+                missing.append(arg.name)
+        if missing:
+            parser.error("the following arguments are required: " + ", ".join(missing))
         arg_dict = {
             k: v
             for k, v in vars(args).items()
@@ -426,7 +418,8 @@ class cli(group):
             name_len = len(self._get_name_part(node))
             prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
-            opts_sorted = sorted(node.effective_options, key=lambda x: (x.sort_key, x.flags[0]))
+            opts = node.options if hasattr(node, "options") else node.effective_options
+            opts_sorted = sorted(opts, key=lambda x: (x.sort_key, x.flags[0]))
             for opt in opts_sorted:
                 flags = sorted(opt.flags, key=lambda f: (-len(f), f))
                 opt_name = ", ".join(flags)
@@ -463,10 +456,9 @@ class cli(group):
         console.print(tree)
 
     def _get_name_part(self, node: Union[group, command, Chain]) -> str:
-        if isinstance(node, group):
-            return node.display_name
         args_parts = []
-        for arg in sorted(node.effective_arguments, key=lambda x: (x.sort_key, x.name)):
+        args_list = node.arguments if hasattr(node, "arguments") else node.effective_arguments
+        for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
             extra = []
             if self.show_types:
@@ -509,7 +501,23 @@ class cli(group):
         )
         label = Text()
         label.append(self.display_name, style=style)
-        name_len = len(self.display_name)
+        args_parts = []
+        for arg in sorted(self.arguments, key=lambda x: (x.sort_key, x.name)):
+            part = f"[{arg.name.upper()}"
+            extra = []
+            if self.show_types:
+                extra.append(arg.arg_type.__name__)
+            if arg.choices is not None:
+                extra.append(f"({'|'.join(map(str, arg.choices))})")
+            if extra:
+                part += f", {' '.join(extra)}"
+            part += "]"
+            args_parts.append(part)
+        args_str = " ".join(args_parts)
+        if args_str:
+            label.append(" ")
+            label.append(args_str, style="dim " + self.colors.argument if is_ancestor else self.colors.argument)
+        name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if self.help:
@@ -558,29 +566,25 @@ class cli(group):
             "dim " + self.colors.argument if is_ancestor else self.colors.argument
         )
         label = Text()
-        if isinstance(node, group):
-            label.append(node.display_name, style=name_style)
-            name_len = len(node.display_name)
-        else:
-            label.append(node.display_name, style=name_style)
-            for arg in sorted(node.effective_arguments, key=lambda x: (x.sort_key, x.name)):
-                label.append(" ")
-                label.append(f"[{arg.name.upper()}", style=arg_style)
-                type_part = ""
-                if self.show_types:
-                    type_part = arg.arg_type.__name__
-                choices_part = ""
-                if arg.choices is not None:
-                    choices_part = f"({'|'.join(map(str, arg.choices))})"
-                if type_part or choices_part:
-                    separator = " " if type_part and choices_part else ""
-                    label.append(
-                        Text.from_markup(
-                            f",[{self.colors.type_color}]{type_part}{separator}{choices_part}[/{self.colors.type_color}]"
-                        )
-                    )
-                label.append("]", style=arg_style)
-            name_len = label.cell_len
+        label.append(node.display_name, style=name_style)
+        args_list = node.arguments if isinstance(node, group) else node.effective_arguments
+        args_parts = []
+        for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
+            part = f"[{arg.name.upper()}"
+            extra = []
+            if self.show_types:
+                extra.append(arg.arg_type.__name__)
+            if arg.choices is not None:
+                extra.append(f"({'|'.join(map(str, arg.choices))})")
+            if extra:
+                part += f", {' '.join(extra)}"
+            part += "]"
+            args_parts.append(part)
+        args_str = " ".join(args_parts)
+        if args_str:
+            label.append(" ")
+            label.append(args_str, style=arg_style)
+        name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if node.help:
@@ -676,7 +680,8 @@ class cli(group):
         selected_depth: int,
     ):
         is_ancestor = depth < selected_depth
-        opts_sorted = sorted(node.effective_options, key=lambda x: (x.sort_key, x.flags[0]))
+        opts = node.options if hasattr(node, "options") else node.effective_options
+        opts_sorted = sorted(opts, key=lambda x: (x.sort_key, x.flags[0]))
         for opt in opts_sorted:
             opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
