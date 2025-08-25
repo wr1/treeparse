@@ -289,7 +289,7 @@ class cli(group):
         path_str = " ".join(path)
         if path_str:
             path_str += " "
-        usage = f"[bold]Usage: {self.display_name} {path_str} ... [rgb(45,45,45)] (--json, -h, --help)"
+        usage = f"[bold]Usage: {self.display_name} {path_str} ... [rgb(95,95,95)] (--json, -h, --help)"
         console.print(usage)
         current = self._get_node_from_path(path)
         console.print(
@@ -594,4 +594,3 @@ class cli(group):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
-
