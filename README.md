@@ -13,7 +13,7 @@ This provides very compact full overview help, showing hierarchy.
 - Automatic validation of callback parameters against CLI definitions.
 - Rich tree-based help output with optional type display.
 - JSON help output.
-- Easily extensible and modular.
+- Pluggable, a CLI for an app can be made a branch of a higher level CLI without modifications. 
 
 ## Installation
 
