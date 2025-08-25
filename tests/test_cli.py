@@ -355,6 +355,59 @@ def test_option_short_long_flag_order():
     assert captured_output == "file.txt"
 
 
+def test_option_long_short_order():
+    captured_output = None
+
+    def callback(output: str):
+        nonlocal captured_output
+        captured_output = output
+
+    opt = option(flags=["--output", "-o"], arg_type=str)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    app._validate()  # Should not raise
+
+    sys.argv = ["test", "cmd", "-o", "file.txt"]
+    app.run()
+    assert captured_output == "file.txt"
+
+    sys.argv = ["test", "cmd", "--output", "file.txt"]
+    app.run()
+    assert captured_output == "file.txt"
+
+
+def test_option_short_only():
+    captured_output = None
+
+    def callback(o: str):
+        nonlocal captured_output
+        captured_output = o
+
+    opt = option(flags=["-o"], arg_type=str)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    app._validate()  # Should not raise
+
+    sys.argv = ["test", "cmd", "-o", "file.txt"]
+    app.run()
+    assert captured_output == "file.txt"
+
+
+def test_option_name_mismatch_short_only():
+    def callback(output: str):
+        pass
+
+    opt = option(flags=["-o"], arg_type=str)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    with pytest.raises(ValueError) as exc:
+        app._validate()
+    assert "name mismatch" in str(exc.value)
+
+
 def test_display_name_strips_py(capsys):
     app = cli(name="test.py", help="Test CLI")
     sys.argv = ["test.py", "--help"]
@@ -368,4 +421,35 @@ def test_display_name_strips_py(capsys):
 def test_display_name_no_py():
     app = cli(name="test", help="Test CLI")
     assert app.display_name == "test"
+
+
+def test_super_cli_with_py_name(capsys):
+    called = [False]
+
+    def callback():
+        called[0] = True
+
+    sub_cmd = command(name="subcmd", callback=callback)
+    sub_app = cli(name="sub.py", help="Sub CLI", commands=[sub_cmd])
+    super_app = cli(name="test_super", help="Super CLI", subgroups=[sub_app])
+
+    # Check help output
+    sys.argv = ["test_super", "--help"]
+    with pytest.raises(SystemExit):
+        super_app.run()
+    captured = capsys.readouterr()
+    assert "sub " in captured.out  # display_name without .py
+    assert "sub.py" not in captured.out
+
+    # Check execution
+    sys.argv = ["test_super", "sub", "subcmd"]
+    super_app.run()
+    assert called[0]
+
+    # Check invalid call with .py
+    sys.argv = ["test_super", "sub.py", "subcmd"]
+    with pytest.raises(SystemExit):
+        super_app.run()
+    captured = capsys.readouterr()
+    assert "invalid choice" in captured.out
 

@@ -53,11 +53,6 @@ class cli(group):
     show_defaults: bool = False
     line_connect: bool = False
 
-    @property
-    def display_name(self) -> str:
-        """Get display name, stripping .py suffix if present."""
-        return self.name.removesuffix(".py")
-
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
 
@@ -80,7 +75,7 @@ class cli(group):
             if not hasattr(current, "subgroups"):
                 raise ValueError(f"Path not found: {path}")
             children = current.subgroups + current.commands
-            ch = next((c for c in children if c.name == p), None)
+            ch = next((c for c in children if c.display_name == p), None)
             if ch is None:
                 raise ValueError(f"Path not found: {path}")
             current = ch
@@ -175,7 +170,7 @@ class cli(group):
             subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
             for child in children:
                 child_parser = subparsers.add_parser(
-                    child.name, help=child.help, add_help=False
+                    child.display_name, help=child.help, add_help=False
                 )
                 for opt in child.options:
                     dest = opt.get_dest()
@@ -335,7 +330,7 @@ class cli(group):
             if on_path and remaining_path:
                 next_name = remaining_path[0]
                 for child in children:
-                    if child.name == next_name:
+                    if child.display_name == next_name:
                         collect_recurse(child, True, remaining_path[1:], depth + 1)
                         break
             else:
@@ -365,7 +360,7 @@ class cli(group):
             part += "]"
             args_parts.append(part)
         args_str = " ".join(args_parts)
-        return f"{node.name} {args_str}".rstrip()
+        return f"{node.display_name} {args_str}".rstrip()
 
     def _wrap_help(self, help: str, width: int) -> List[str]:
         if width <= 0:
@@ -449,7 +444,7 @@ class cli(group):
             label.append(node.display_name, style=name_style)
             name_len = len(node.display_name)
         else:
-            label.append(node.name, style=name_style)
+            label.append(node.display_name, style=name_style)
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
                 label.append(" ")
                 label.append(f"[{arg.name.upper()}", style=arg_style)
@@ -576,7 +571,7 @@ class cli(group):
         if on_path and remaining_path:
             next_name = remaining_path[0]
             for child in children:
-                if child.name == next_name:
+                if child.display_name == next_name:
                     child_is_ancestor = (depth + 1) < selected_depth
                     child_label = self._get_label(
                         child, max_start, True, depth + 1, child_is_ancestor

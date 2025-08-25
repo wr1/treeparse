@@ -15,6 +15,11 @@ class command(BaseModel):
     options: List[option] = []
     sort_key: int = 0
 
+    @property
+    def display_name(self) -> str:
+        """Get display name, stripping .py suffix if present."""
+        return self.name.removesuffix(".py")
+
     def validate(self):
         """Validate that callback parameters match defined arguments and options in name and type."""
         sig = inspect.signature(self.callback)
