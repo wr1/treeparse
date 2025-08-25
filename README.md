@@ -13,7 +13,9 @@ This provides very compact full overview help, showing hierarchy.
 - Automatic validation of callback parameters against CLI definitions.
 - Rich tree-based help output with optional type display.
 - JSON help output.
-- Pluggable, a CLI for an app can be made a branch of a higher level CLI without modifications. 
+- Easily extensible and modular.
+- Command chaining with aggregate arguments and options.
+- Group-level options inherited by subcommands.
 
 ## Installation
 
@@ -71,6 +73,14 @@ See `examples/demo.py` for a more complex CLI with groups, subcommands, argument
 ### List Demo Example
 
 See `examples/list_demo.py` for demonstration of list arguments (nargs='*') and list options (nargs='+').
+
+### Chain Demo Example
+
+See `examples/chain_demo.py` for demonstration of command chaining.
+
+### Group Option Demo Example
+
+See `examples/group_option_demo.py` for demonstration of group-level options.
 
 ## Development
 

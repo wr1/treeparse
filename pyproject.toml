@@ -19,6 +19,8 @@ basic = "examples.basic:main"
 list_demo = "examples.list_demo:main"
 basic_super = "examples.basic_super:main"
 choice_demo = "examples.choice_demo:main"
+chain_demo = "examples.chain_demo:main"
+group_option_demo = "examples.group_option_demo:main"
 
 [dependency-groups]
 dev = [

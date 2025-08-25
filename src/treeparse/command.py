@@ -1,6 +1,6 @@
 from typing import Callable, List
 import inspect
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 from .argument import argument
 from .option import option
 
@@ -15,10 +15,21 @@ class command(BaseModel):
     options: List[option] = []
     sort_key: int = 0
 
+    @computed_field
     @property
     def display_name(self) -> str:
         """Get display name, stripping .py suffix if present."""
         return self.name.removesuffix(".py")
+
+    @computed_field
+    @property
+    def effective_arguments(self) -> List[argument]:
+        return self.arguments
+
+    @computed_field
+    @property
+    def effective_options(self) -> List[option]:
+        return self.options
 
     def validate(self):
         """Validate that callback parameters match defined arguments and options in name and type."""
@@ -100,4 +111,3 @@ class command(BaseModel):
                         raise ValueError(
                             f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
                         )
-

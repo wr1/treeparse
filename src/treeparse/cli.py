@@ -1,7 +1,8 @@
-from typing import List, Union
+from typing import List, Union, Dict
 import argparse
 import sys
 import json
+import inspect
 from pydantic import BaseModel
 from rich.console import Console
 from rich.tree import Tree
@@ -9,8 +10,10 @@ from rich.text import Text
 from rich.syntax import Syntax
 from .group import group
 from .command import command
+from .chain import Chain
 from .option import option
 from .color_config import color_config
+from .argument import argument
 
 
 def str2bool(v):
@@ -24,6 +27,13 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
+
+def chain_runner(chain_obj: Chain, **kwargs):
+    """Runner function for chain commands."""
+    for sub_cmd in chain_obj.chained_commands:
+        sig = inspect.signature(sub_cmd.callback)
+        sub_kwargs = {k: kwargs.get(k) for k in sig.parameters if k in kwargs}
+        sub_cmd.callback(**sub_kwargs)
 
 class RichArgumentParser(argparse.ArgumentParser):
     """Custom ArgumentParser with rich-formatted errors."""
@@ -56,8 +66,8 @@ class cli(group):
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
 
-        def recurse(node: Union["cli", group, command]) -> int:
-            if isinstance(node, command):
+        def recurse(node: Union["cli", group, command, Chain]) -> int:
+            if isinstance(node, (command, Chain)):
                 return 0
             children = (
                 node.subgroups + node.commands if hasattr(node, "subgroups") else []
@@ -68,9 +78,9 @@ class cli(group):
 
         return recurse(self)
 
-    def _get_node_from_path(self, path: List[str]) -> Union[group, command, "cli"]:
+    def _get_node_from_path(self, path: List[str]) -> Union[group, command, Chain, "cli"]:
         """Get node from path."""
-        current: Union["cli", group, command] = self
+        current: Union["cli", group, command, Chain] = self
         for p in path:
             if not hasattr(current, "subgroups"):
                 raise ValueError(f"Path not found: {path}")
@@ -84,34 +94,36 @@ class cli(group):
     def structure_dict(self):
         """Return a dictionary representation of the CLI structure."""
 
-        def recurse(node: Union["cli", group, command], is_root: bool = True):
+        def recurse(node: Union["cli", group, command, Chain], is_root: bool = True):
             d = {"name": node.name, "help": node.help}
             if hasattr(node, "sort_key"):
                 d["sort_key"] = node.sort_key
-            if hasattr(node, "options"):
-                d["options"] = [
-                    {
-                        **opt.model_dump(exclude={"arg_type"}),
-                        "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
-                        "choices": opt.choices,
-                    }
-                    for opt in sorted(
-                        node.options, key=lambda x: (x.sort_key, x.flags[0])
-                    )
-                ]
+            d["options"] = [
+                {
+                    **opt.model_dump(exclude={"arg_type"}),
+                    "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
+                    "choices": opt.choices,
+                }
+                for opt in sorted(
+                    node.effective_options, key=lambda x: (x.sort_key, x.flags[0])
+                )
+            ]
+            d["arguments"] = [
+                {
+                    **arg.model_dump(exclude={"arg_type"}),
+                    "arg_type": arg.arg_type.__name__,
+                    "choices": arg.choices,
+                }
+                for arg in sorted(
+                    node.effective_arguments, key=lambda x: (x.sort_key, x.name)
+                )
+            ]
             if isinstance(node, command):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
-                d["arguments"] = [
-                    {
-                        **arg.model_dump(exclude={"arg_type"}),
-                        "arg_type": arg.arg_type.__name__,
-                        "choices": arg.choices,
-                    }
-                    for arg in sorted(
-                        node.arguments, key=lambda x: (x.sort_key, x.name)
-                    )
-                ]
+            elif isinstance(node, Chain):
+                d["type"] = "chain"
+                d["chained"] = [recurse(c, False) for c in node.chained_commands]
             else:
                 if is_root:
                     d["type"] = "cli"
@@ -138,7 +150,7 @@ class cli(group):
         parser = RichArgumentParser(
             prog=self.display_name, description=self.help, add_help=False
         )
-        for opt in self.options:
+        for opt in self.effective_options:
             dest = opt.get_dest()
             kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
             if opt.is_flag:
@@ -172,7 +184,7 @@ class cli(group):
                 child_parser = subparsers.add_parser(
                     child.display_name, help=child.help, add_help=False
                 )
-                for opt in child.options:
+                for opt in child.effective_options:
                     dest = opt.get_dest()
                     kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
                     if opt.is_flag:
@@ -186,8 +198,8 @@ class cli(group):
                     if opt.choices is not None:
                         kwargs["choices"] = opt.choices
                     child_parser.add_argument(*opt.flags, **kwargs)
-                if isinstance(child, command):
-                    for arg in child.arguments:
+                if isinstance(child, (command, Chain)):
+                    for arg in child.effective_arguments:
                         kwargs = {
                             "help": arg.help,
                             "type": arg.arg_type if arg.arg_type != bool else str2bool,
@@ -203,23 +215,103 @@ class cli(group):
                         if arg.choices is not None:
                             kwargs["choices"] = arg.choices
                         child_parser.add_argument(arg.name, **kwargs)
-                    child_parser.set_defaults(func=child.callback)
+                    if isinstance(child, command):
+                        child_parser.set_defaults(func=child.callback)
+                    else:
+                        child_parser.set_defaults(func=chain_runner, chain_obj=child)
                 else:
                     self._build_subparser(child_parser, child, depth + 1, max_depth)
 
     def _validate(self):
-        """Validate all commands in the CLI structure."""
+        """Validate all commands in the CLI structure, considering inherited options."""
 
-        def recurse(node: Union["cli", group, command]):
+        def recurse(node: Union["cli", group, command, Chain], inherited_options: List[option] = []):
+            current_inherited = inherited_options + node.effective_options
             if isinstance(node, command):
+                provided = {}
+                for arg in node.effective_arguments:
+                    dest = arg.dest or arg.name
+                    arg_type = arg.arg_type
+                    if arg.nargs in ["*", "+"]:
+                        arg_type = List[arg_type]
+                    provided[dest] = arg_type
+                for opt in current_inherited:
+                    dest = opt.get_dest()
+                    opt_type = bool if opt.is_flag else opt.arg_type
+                    if opt.nargs in ["*", "+"] and not opt.is_flag:
+                        opt_type = List[opt_type]
+                    provided[dest] = opt_type
+                sig = inspect.signature(node.callback)
+                param_names = set(sig.parameters.keys())
+                param_types = {
+                    k: v.annotation
+                    for k, v in sig.parameters.items()
+                    if v.annotation != inspect.Parameter.empty
+                }
+                provided_names = set(provided.keys())
+                if param_names != provided_names:
+                    missing = param_names - provided_names
+                    extra = provided_names - param_names
+                    error_msg = f"Parameter name mismatch for command '[bold red]{node.name}[/bold red]': "
+                    if missing:
+                        error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
+                    if extra:
+                        error_msg += f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
+                    error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
+                    raise ValueError(error_msg)
+                type_mismatches = []
+                for param, p_type in param_types.items():
+                    cli_type = provided.get(param)
+                    if cli_type != p_type:
+                        type_mismatches.append(
+                            f"{param}: callback [green]{p_type.__name__}[/green] vs CLI [green]{cli_type.__name__}[/green]"
+                        )
+                if type_mismatches:
+                    error_msg = (
+                        f"Parameter type mismatch for command '[bold red]{node.name}[/bold red]': "
+                        + "; ".join(type_mismatches)
+                    )
+                    raise ValueError(error_msg)
+                # Check defaults against choices (only local)
+                for arg in node.arguments:
+                    if arg.choices is not None and arg.default is not None:
+                        if arg.nargs in ["*", "+"] and isinstance(arg.default, list):
+                            for d in arg.default:
+                                if d not in arg.choices:
+                                    raise ValueError(
+                                        f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                    )
+                        else:
+                            if arg.default not in arg.choices:
+                                raise ValueError(
+                                    f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                )
+                for opt in node.options:  # only local options for this check
+                    if opt.is_flag and opt.choices is not None:
+                        raise ValueError(
+                            f"Choices not applicable for flag option '{opt.flags[0]}' in command '{node.name}'"
+                        )
+                    if opt.choices is not None and opt.default is not None:
+                        if opt.nargs in ["*", "+"] and isinstance(opt.default, list):
+                            for d in opt.default:
+                                if d not in opt.choices:
+                                    raise ValueError(
+                                        f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                    )
+                        else:
+                            if opt.default not in opt.choices:
+                                raise ValueError(
+                                    f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                )
+            elif isinstance(node, Chain):
                 node.validate()
             else:
                 for cmd in node.commands:
-                    recurse(cmd)
+                    recurse(cmd, current_inherited)
                 for grp in node.subgroups:
-                    recurse(grp)
+                    recurse(grp, current_inherited)
 
-        recurse(self)
+        recurse(self, [])
 
     def run(self):
         """Run the CLI."""
@@ -266,7 +358,7 @@ class cli(group):
             sys.exit(0)
         current = self._get_node_from_path(path)
         missing = []
-        for arg in current.arguments:
+        for arg in current.effective_arguments:
             dest = arg.dest or arg.name
             if (
                 arg.nargs is None
@@ -279,27 +371,44 @@ class cli(group):
         arg_dict = {
             k: v
             for k, v in vars(args).items()
-            if not k.startswith("command_") and k not in ("func",)
+            if not k.startswith("command_") and k not in ("func", "chain_obj")
         }
-        args.func(**arg_dict)
+        if hasattr(args, "chain_obj"):
+            args.func(args.chain_obj, **arg_dict)
+        else:
+            args.func(**arg_dict)
 
     def print_help(self, path: List[str]):
         """Print custom tree help."""
-        console = Console(width=self.max_width)
-        path_str = " ".join(path)
+        # Find the deepest valid command path
+        current = self
+        consumed = 0
+        for i, p in enumerate(path):
+            if not hasattr(current, "subgroups"):
+                break
+            children = current.subgroups + current.commands
+            child = next((c for c in children if c.display_name == p), None)
+            if child is None:
+                break
+            current = child
+            consumed = i + 1
+        effective_path = path[:consumed]
+        # Build usage string
+        path_str = " ".join(effective_path)
         if path_str:
             path_str += " "
-        usage = f"[bold]Usage: {self.display_name} {path_str} ... [rgb(95,95,95)] (--json, -h, --help)"
+        if consumed < len(path):
+            path_str += "[ARGS...] "
+        usage = f"[bold]Usage: {self.display_name} {path_str}... [rgb(45,45,45)] (--json, -h, --help)"
+        console = Console(width=self.max_width)
         console.print(usage)
-        current = self._get_node_from_path(path)
         console.print(
             f"[{self.colors.requested_help}]Description: {current.help}[/{self.colors.requested_help}]"
         )
-        # console.print("[italic cyan]Commands:")
         max_start = 0
 
         def collect_recurse(
-            node: Union["cli", group, command],
+            node: Union["cli", group, command, Chain],
             on_path: bool,
             remaining_path: List[str],
             depth: int,
@@ -308,8 +417,8 @@ class cli(group):
             name_len = len(self._get_name_part(node))
             prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
-            opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-            for opt in opts:
+            opts_sorted = sorted(node.effective_options, key=lambda x: (x.sort_key, x.flags[0]))
+            for opt in opts_sorted:
                 flags = sorted(opt.flags, key=lambda f: (-len(f), f))
                 opt_name = ", ".join(flags)
                 opt_len = len(opt_name)
@@ -321,7 +430,7 @@ class cli(group):
                     opt_len += len(choices_str)
                 opt_prefix = (depth + 1) * 4
                 max_start = max(max_start, opt_prefix + opt_len)
-            if isinstance(node, command):
+            if isinstance(node, (command, Chain)):
                 return
             children = sorted(
                 (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
@@ -337,18 +446,18 @@ class cli(group):
                 for child in children:
                     collect_recurse(child, False, [], depth + 1)
 
-        collect_recurse(self, True, path, 0)
-        selected_depth = len(path)
+        collect_recurse(self, True, effective_path, 0)
+        selected_depth = len(effective_path)
         root_label = self._get_root_label(max_start, 0, True)
         tree = Tree(root_label, guide_style=self.colors.guide)
-        self._add_children(tree, self, True, path, max_start, 0, selected_depth)
+        self._add_children(tree, self, True, effective_path, max_start, 0, selected_depth)
         console.print(tree)
 
-    def _get_name_part(self, node: Union[group, command]) -> str:
+    def _get_name_part(self, node: Union[group, command, Chain]) -> str:
         if isinstance(node, group):
             return node.display_name
         args_parts = []
-        for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
+        for arg in sorted(node.effective_arguments, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
             extra = []
             if self.show_types:
@@ -417,7 +526,7 @@ class cli(group):
 
     def _get_label(
         self,
-        node: Union[group, command],
+        node: Union[group, command, Chain],
         max_start: int,
         on_path: bool,
         depth: int,
@@ -445,7 +554,7 @@ class cli(group):
             name_len = len(node.display_name)
         else:
             label.append(node.display_name, style=name_style)
-            for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
+            for arg in sorted(node.effective_arguments, key=lambda x: (x.sort_key, x.name)):
                 label.append(" ")
                 label.append(f"[{arg.name.upper()}", style=arg_style)
                 type_part = ""
@@ -550,7 +659,7 @@ class cli(group):
     def _add_children(
         self,
         current_tree: Tree,
-        node: Union["cli", group, command],
+        node: Union["cli", group, command, Chain],
         on_path: bool,
         remaining_path: List[str],
         max_start: int,
@@ -558,11 +667,11 @@ class cli(group):
         selected_depth: int,
     ):
         is_ancestor = depth < selected_depth
-        opts = sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
-        for opt in opts:
+        opts_sorted = sorted(node.effective_options, key=lambda x: (x.sort_key, x.flags[0]))
+        for opt in opts_sorted:
             opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
-        if isinstance(node, command):
+        if isinstance(node, (command, Chain)):
             return
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],

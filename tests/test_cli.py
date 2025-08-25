@@ -2,7 +2,7 @@ import pytest
 import sys
 import json
 from typing import List
-from treeparse import cli, command, argument, option
+from treeparse import cli, command, argument, option, chain
 
 
 def test_cli_build_parser():
@@ -31,7 +31,7 @@ def test_cli_help_output(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test  ...  (--json, -h, --help)" in captured.out
+    assert "Usage: test ...  (--json, -h, --help)" in captured.out
 
 
 def test_cli_with_command():
@@ -414,7 +414,7 @@ def test_display_name_strips_py(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test  ...  (--json, -h, --help)" in captured.out
+    assert "Usage: test ...  (--json, -h, --help)" in captured.out
     assert app.display_name == "test"
 
 
@@ -453,3 +453,61 @@ def test_super_cli_with_py_name(capsys):
     captured = capsys.readouterr()
     assert "invalid choice" in captured.out
 
+
+def test_help_with_arguments(capsys):
+    def callback(name: str):
+        pass
+
+    cmd = command(
+        name="greet",
+        help="Greet someone.",
+        arguments=[argument(name="name", arg_type=str)],
+        callback=callback
+    )
+    app = cli(name="test", commands=[cmd])
+
+    sys.argv = ["test", "greet", "John", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "Usage: test greet [ARGS...] ...  (--json, -h, --help)" in captured.out
+    assert "Greet someone." in captured.out
+
+
+def test_chain_execution():
+    calls = []
+
+    def cb1(a: int):
+        calls.append(("cb1", a))
+
+    def cb2(b: str):
+        calls.append(("cb2", b))
+
+    cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
+    cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)])
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
+    app = cli(name="test", commands=[chain_obj])
+
+    sys.argv = ["test", "chain", "42", "hello"]
+    app.run()
+    assert calls == [("cb1", 42), ("cb2", "hello")]
+
+
+def test_chain_help(capsys):
+    def cb1():
+        pass
+
+    def cb2():
+        pass
+
+    cmd1 = command(name="cmd1", callback=cb1)
+    cmd2 = command(name="cmd2", callback=cb2)
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
+    app = cli(name="test", commands=[chain_obj])
+
+    sys.argv = ["test", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "chain" in captured.out
+    assert "cmd1 ➜ cmd2" in captured.out
