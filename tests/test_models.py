@@ -157,3 +157,29 @@ def test_command_validation_flag_with_choices():
         cmd.validate()
     assert "Choices not applicable for flag option '--flag'" in str(exc.value)
 
+
+def test_option_dest_prefer_long():
+    opt = option(flags=["-o", "--output"])
+    assert opt.get_dest() == "output"
+
+
+def test_option_dest_short_only():
+    opt = option(flags=["-o"])
+    assert opt.get_dest() == "o"
+
+
+def test_option_dest_long_first():
+    opt = option(flags=["--output", "-o"])
+    assert opt.get_dest() == "output"
+
+
+def test_option_dest_with_explicit_dest():
+    opt = option(flags=["-o", "--output"], dest="outfile")
+    assert opt.get_dest() == "outfile"
+
+
+def test_option_dest_no_flags():
+    opt = option(flags=[])
+    with pytest.raises(ValueError):
+        opt.get_dest()
+

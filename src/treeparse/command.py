@@ -32,7 +32,7 @@ class command(BaseModel):
                 arg_type = List[arg_type]
             provided[dest] = arg_type
         for opt in self.options:
-            dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
+            dest = opt.get_dest()
             opt_type = bool if opt.is_flag else opt.arg_type
             if opt.nargs in ["*", "+"] and not opt.is_flag:
                 opt_type = List[opt_type]
@@ -95,3 +95,4 @@ class command(BaseModel):
                         raise ValueError(
                             f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
                         )
+

@@ -329,3 +329,43 @@ def test_line_connect_option(capsys):
     assert "─" in captured.out  # Check for connector in option
     assert "An option with help" in captured.out
 
+
+def test_option_short_long_flag_order():
+    captured_output = None
+
+    def callback(output: str):
+        nonlocal captured_output
+        captured_output = output
+
+    opt = option(flags=["-o", "--output"], arg_type=str)
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app = cli(name="test", commands=[cmd])
+
+    # Validate should pass with 'output' as param name
+    app._validate()  # Should not raise
+
+    # Run with short flag
+    sys.argv = ["test", "cmd", "-o", "file.txt"]
+    app.run()
+    assert captured_output == "file.txt"
+
+    # Run with long flag
+    sys.argv = ["test", "cmd", "--output", "file.txt"]
+    app.run()
+    assert captured_output == "file.txt"
+
+
+def test_display_name_strips_py(capsys):
+    app = cli(name="test.py", help="Test CLI")
+    sys.argv = ["test.py", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "Usage: test  ...  (--json, -h, --help)" in captured.out
+    assert app.display_name == "test"
+
+
+def test_display_name_no_py():
+    app = cli(name="test", help="Test CLI")
+    assert app.display_name == "test"
+

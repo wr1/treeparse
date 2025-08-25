@@ -14,3 +14,15 @@ class option(BaseModel):
     is_flag: bool = False
     choices: Optional[List[Any]] = None
     sort_key: int = 0
+
+    def get_dest(self) -> str:
+        """Compute the destination name for this option."""
+        if self.dest:
+            return self.dest
+        long_flags = [f for f in self.flags if f.startswith("--")]
+        if long_flags:
+            return long_flags[0].lstrip("--").replace("-", "_")
+        if self.flags:
+            return self.flags[0].lstrip("-").replace("-", "_")
+        raise ValueError("No flags defined for option")
+

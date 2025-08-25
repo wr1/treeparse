@@ -13,3 +13,9 @@ class group(BaseModel):
     commands: List[command] = []
     options: List[option] = []
     sort_key: int = 0
+
+    @property
+    def display_name(self) -> str:
+        """Get display name."""
+        return self.name
+

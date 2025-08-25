@@ -53,6 +53,11 @@ class cli(group):
     show_defaults: bool = False
     line_connect: bool = False
 
+    @property
+    def display_name(self) -> str:
+        """Get display name, stripping .py suffix if present."""
+        return self.name.removesuffix(".py")
+
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
 
@@ -136,10 +141,10 @@ class cli(group):
         self._validate()
         max_depth = self.get_max_depth()
         parser = RichArgumentParser(
-            prog=self.name, description=self.help, add_help=False
+            prog=self.display_name, description=self.help, add_help=False
         )
         for opt in self.options:
-            dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
+            dest = opt.get_dest()
             kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
             if opt.is_flag:
                 kwargs["action"] = "store_true"
@@ -173,7 +178,7 @@ class cli(group):
                     child.name, help=child.help, add_help=False
                 )
                 for opt in child.options:
-                    dest = opt.dest or opt.flags[0].lstrip("-").replace("-", "_")
+                    dest = opt.get_dest()
                     kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
                     if opt.is_flag:
                         kwargs["action"] = "store_true"
@@ -289,7 +294,7 @@ class cli(group):
         path_str = " ".join(path)
         if path_str:
             path_str += " "
-        usage = f"[bold]Usage: {self.name} {path_str} ... [rgb(45,45,45)] (--json, -h, --help)"
+        usage = f"[bold]Usage: {self.display_name} {path_str} ... [rgb(45,45,45)] (--json, -h, --help)"
         console.print(usage)
         current = self._get_node_from_path(path)
         console.print(
@@ -346,7 +351,7 @@ class cli(group):
 
     def _get_name_part(self, node: Union[group, command]) -> str:
         if isinstance(node, group):
-            return node.name
+            return node.display_name
         args_parts = []
         for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
@@ -390,8 +395,8 @@ class cli(group):
             "dim " + self.colors.normal_help if is_ancestor else self.colors.normal_help
         )
         label = Text()
-        label.append(self.name, style=style)
-        name_len = len(self.name)
+        label.append(self.display_name, style=style)
+        name_len = len(self.display_name)
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if self.help:
@@ -441,8 +446,8 @@ class cli(group):
         )
         label = Text()
         if isinstance(node, group):
-            label.append(node.name, style=name_style)
-            name_len = len(node.name)
+            label.append(node.display_name, style=name_style)
+            name_len = len(node.display_name)
         else:
             label.append(node.name, style=name_style)
             for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name)):
@@ -594,3 +599,4 @@ class cli(group):
                 self._add_children(
                     child_tree, child, False, [], max_start, depth + 1, selected_depth
                 )
+

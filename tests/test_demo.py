@@ -156,7 +156,7 @@ def test_demo_help(mock_argv, capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: demo.py  ...  (--json, -h, --help)" in captured.out
+    assert "Usage: demo  ...  (--json, -h, --help)" in captured.out
 
 
 def test_demo_user_manage_help(mock_argv, capsys):
