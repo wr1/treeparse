@@ -18,7 +18,7 @@ class color_config(BaseModel):
     option: str = "yellow"
     option_help: str = "italic yellow"
     requested_help: str = "bold white"
-    normal_help: str = "white"
+    normal_help: str = "bold rgb(180,180,180)"
     type_color: str = "dim white"
     connector: str = "rgb(45,45,45)"
     guide: str = "rgb(45,45,45)"
