@@ -10,6 +10,7 @@ basic_app.sort_key = 100
 super_app = cli(
     name="basic_super.py",
     line_connect=True,
+    theme="monochrome",
     help="A super CLI that includes the basic CLI as a sub-CLI.",
     subgroups=[basic_app, demo_app, list_demo_app, choice_demo_app],
 )

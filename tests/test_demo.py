@@ -5,7 +5,7 @@ from treeparse import cli, group, command, argument, option
 
 def create_demo_cli():
     app = cli(
-        name="demo.py",
+        name="demo",
         help="This CLI provides commands to handle various tasks with subcommands for specific actions.",
         max_width=135,
         show_types=True,

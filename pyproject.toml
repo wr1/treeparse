@@ -22,6 +22,7 @@ choice_demo = "examples.choice_demo:main"
 chain_demo = "examples.chain_demo:main"
 group_option_demo = "examples.group_option_demo:main"
 group_arg_demo = "examples.group_arg_demo:main"
+theme_demo = "examples.theme_demo:main"
 
 [dependency-groups]
 dev = [

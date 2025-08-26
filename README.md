@@ -3,7 +3,8 @@
 # Treeparse
 
 CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
-This provides very compact full overview help, showing hierarchy. 
+Aimed at showing CLI structure. 
+
 
 ![gif](docs/assets/output.gif)
 
@@ -16,6 +17,7 @@ This provides very compact full overview help, showing hierarchy.
 - Easily extensible and modular.
 - Command chaining with aggregate arguments and options.
 - Group-level options and arguments propagated to subcommands.
+- Customizable color themes (default, monochrome, mononeon).
 
 ## Installation
 
@@ -85,6 +87,10 @@ See `examples/group_option_demo.py` for demonstration of group-level options.
 ### Group Argument Demo Example
 
 See `examples/group_arg_demo.py` for demonstration of group-level arguments.
+
+### Theme Demo Example
+
+See `examples/theme_demo.py` for demonstration of color themes.
 
 ## Development
 

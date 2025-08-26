@@ -22,7 +22,7 @@ class Chain(BaseModel):
     @computed_field
     @property
     def display_name(self) -> str:
-        return self.name.removesuffix(".py")
+        return self.name
 
     @computed_field
     @property
@@ -33,7 +33,9 @@ class Chain(BaseModel):
             for arg in cmd.arguments:
                 dest = arg.dest or arg.name
                 if dest in seen:
-                    raise ValueError(f"Conflicting argument dest '{dest}' in chain '{self.name}'")
+                    raise ValueError(
+                        f"Conflicting argument dest '{dest}' in chain '{self.name}'"
+                    )
                 seen.add(dest)
                 all_args.append(arg)
         return all_args
@@ -47,7 +49,9 @@ class Chain(BaseModel):
             for opt in cmd.options:
                 dest = opt.get_dest()
                 if dest in seen:
-                    raise ValueError(f"Conflicting option dest '{dest}' in chain '{self.name}'")
+                    raise ValueError(
+                        f"Conflicting option dest '{dest}' in chain '{self.name}'"
+                    )
                 seen.add(dest)
                 all_opts.append(opt)
         return all_opts
