@@ -287,13 +287,23 @@ def test_default_against_choices():
 
     # Valid default
     option(flags=["--opt"], arg_type=int, default=3, choices=[2, 3, 4])
-    cmd = command(name="test", callback=callback, options=[option(flags=["--opt"], arg_type=int, default=3, choices=[2, 3, 4])])
+    cmd = command(
+        name="test",
+        callback=callback,
+        options=[option(flags=["--opt"], arg_type=int, default=3, choices=[2, 3, 4])],
+    )
     app = cli(name="test", commands=[cmd])
     app._validate()  # Should not raise
 
     # Invalid default
     with pytest.raises(ValueError) as exc:
-        cmd = command(name="test", callback=callback, options=[option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])])
+        cmd = command(
+            name="test",
+            callback=callback,
+            options=[
+                option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])
+            ],
+        )
         app = cli(name="test", commands=[cmd])
         app._validate()
     assert "Default value 5 not in choices [2, 3, 4]" in str(exc.value)
@@ -301,6 +311,7 @@ def test_default_against_choices():
 
 def test_line_connect(capsys):
     app = cli(name="test", help="Test CLI with line connect", line_connect=True)
+
     def callback():
         pass
 
@@ -316,6 +327,7 @@ def test_line_connect(capsys):
 
 def test_line_connect_option(capsys):
     app = cli(name="test", line_connect=True)
+
     def callback(opt: str):
         pass
 
@@ -408,14 +420,14 @@ def test_option_name_mismatch_short_only():
     assert "name mismatch" in str(exc.value)
 
 
-def test_display_name_strips_py(capsys):
+def test_display_name_includes_py(capsys):
     app = cli(name="test.py", help="Test CLI")
     sys.argv = ["test.py", "--help"]
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test ...  (--json, -h, --help)" in captured.out
-    assert app.display_name == "test"
+    assert "Usage: test.py ...  (--json, -h, --help)" in captured.out
+    assert app.display_name == "test.py"
 
 
 def test_display_name_no_py():
@@ -438,16 +450,15 @@ def test_super_cli_with_py_name(capsys):
     with pytest.raises(SystemExit):
         super_app.run()
     captured = capsys.readouterr()
-    assert "sub " in captured.out  # display_name without .py
-    assert "sub.py" not in captured.out
+    assert "sub.py " in captured.out  # display_name with .py
 
     # Check execution
-    sys.argv = ["test_super", "sub", "subcmd"]
+    sys.argv = ["test_super", "sub.py", "subcmd"]
     super_app.run()
     assert called[0]
 
-    # Check invalid call with .py
-    sys.argv = ["test_super", "sub.py", "subcmd"]
+    # Check invalid call without .py
+    sys.argv = ["test_super", "sub", "subcmd"]
     with pytest.raises(SystemExit):
         super_app.run()
     captured = capsys.readouterr()
@@ -462,7 +473,7 @@ def test_help_with_arguments(capsys):
         name="greet",
         help="Greet someone.",
         arguments=[argument(name="name", arg_type=str)],
-        callback=callback
+        callback=callback,
     )
     app = cli(name="test", commands=[cmd])
 
@@ -483,8 +494,12 @@ def test_chain_execution():
     def cb2(b: str):
         calls.append(("cb2", b))
 
-    cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
-    cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)])
+    cmd1 = command(
+        name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)]
+    )
+    cmd2 = command(
+        name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)]
+    )
     chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 
@@ -522,15 +537,11 @@ def test_group_argument_propagation():
         assert name == "test"
 
     add_cmd = command(
-        name="add",
-        callback=callback,
-        arguments=[argument(name="name", arg_type=str)]
+        name="add", callback=callback, arguments=[argument(name="name", arg_type=str)]
     )
 
     user_group = group(
-        name="user",
-        arguments=[argument(name="id", arg_type=int)],
-        commands=[add_cmd]
+        name="user", arguments=[argument(name="id", arg_type=int)], commands=[add_cmd]
     )
 
     app = cli(name="test", subgroups=[user_group])
@@ -544,9 +555,13 @@ def test_group_argument_in_help(capsys):
     def callback(id: int, name: str):
         pass
 
-    cmd = command(name="add", callback=callback, arguments=[argument(name="name", arg_type=str)])
+    cmd = command(
+        name="add", callback=callback, arguments=[argument(name="name", arg_type=str)]
+    )
 
-    g = group(name="user", arguments=[argument(name="id", arg_type=int)], commands=[cmd])
+    g = group(
+        name="user", arguments=[argument(name="id", arg_type=int)], commands=[cmd]
+    )
 
     app = cli(name="test", subgroups=[g], show_types=True)
 
