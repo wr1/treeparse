@@ -3,7 +3,7 @@ import argparse
 import sys
 import json
 import inspect
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
@@ -34,6 +34,7 @@ def chain_runner(chain_obj: Chain, **kwargs):
         sig = inspect.signature(sub_cmd.callback)
         sub_kwargs = {k: kwargs.get(k) for k in sig.parameters if k in kwargs}
         sub_cmd.callback(**sub_kwargs)
+
 
 class RichArgumentParser(argparse.ArgumentParser):
     """Custom ArgumentParser with rich-formatted errors."""
@@ -84,7 +85,9 @@ class cli(group):
 
         return recurse(self)
 
-    def _get_node_from_path(self, path: List[str]) -> Union[group, command, Chain, "cli"]:
+    def _get_node_from_path(
+        self, path: List[str]
+    ) -> Union[group, command, Chain, "cli"]:
         """Get node from path."""
         current: Union["cli", group, command, Chain] = self
         for p in path:
@@ -110,9 +113,7 @@ class cli(group):
                     "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
                     "choices": opt.choices,
                 }
-                for opt in sorted(
-                    node.options, key=lambda x: (x.sort_key, x.flags[0])
-                )
+                for opt in sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
             ]
             d["arguments"] = [
                 {
@@ -120,9 +121,7 @@ class cli(group):
                     "arg_type": arg.arg_type.__name__,
                     "choices": arg.choices,
                 }
-                for arg in sorted(
-                    node.arguments, key=lambda x: (x.sort_key, x.name)
-                )
+                for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
             ]
             if isinstance(node, command):
                 d["type"] = "command"
@@ -161,10 +160,7 @@ class cli(group):
         return parser
 
     def _add_args_and_opts_to_parser(
-        self,
-        parser: argparse.ArgumentParser,
-        args: List[argument],
-        opts: List[option]
+        self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]
     ):
         for opt in opts:
             dest = opt.get_dest()
@@ -204,7 +200,7 @@ class cli(group):
         depth: int,
         max_depth: int,
         inherited_args: List[argument],
-        inherited_opts: List[option]
+        inherited_opts: List[option],
     ):
         if depth > max_depth:
             return
@@ -219,10 +215,23 @@ class cli(group):
                     child.display_name, help=child.help, add_help=False
                 )
                 if isinstance(child, group):
-                    self._add_args_and_opts_to_parser(child_parser, child.arguments, child.options)
-                    self._build_subparser(child_parser, child, depth + 1, max_depth, inherited_args + child.arguments, inherited_opts + child.options)
+                    self._add_args_and_opts_to_parser(
+                        child_parser, child.arguments, child.options
+                    )
+                    self._build_subparser(
+                        child_parser,
+                        child,
+                        depth + 1,
+                        max_depth,
+                        inherited_args + child.arguments,
+                        inherited_opts + child.options,
+                    )
                 else:  # command or Chain
-                    self._add_args_and_opts_to_parser(child_parser, inherited_args + child.effective_arguments, inherited_opts + child.effective_options)
+                    self._add_args_and_opts_to_parser(
+                        child_parser,
+                        child.effective_arguments,
+                        inherited_opts + child.effective_options,
+                    )
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
                     else:
@@ -231,7 +240,11 @@ class cli(group):
     def _validate(self):
         """Validate all commands in the CLI structure, considering inherited options and arguments."""
 
-        def recurse(node: Union["cli", group, command, Chain], inherited_args: List[argument] = [], inherited_opts: List[option] = []):
+        def recurse(
+            node: Union["cli", group, command, Chain],
+            inherited_args: List[argument] = [],
+            inherited_opts: List[option] = [],
+        ):
             if isinstance(node, command):
                 effective_args = inherited_args + node.arguments
                 effective_opts = inherited_opts + node.options
@@ -314,9 +327,17 @@ class cli(group):
                 node.validate()
             else:
                 for cmd in node.commands:
-                    recurse(cmd, inherited_args + node.arguments, inherited_opts + node.options)
+                    recurse(
+                        cmd,
+                        inherited_args + node.arguments,
+                        inherited_opts + node.options,
+                    )
                 for grp in node.subgroups:
-                    recurse(grp, inherited_args + node.arguments, inherited_opts + node.options)
+                    recurse(
+                        grp,
+                        inherited_args + node.arguments,
+                        inherited_opts + node.options,
+                    )
 
         recurse(self, [], [])
 
@@ -458,12 +479,16 @@ class cli(group):
         selected_depth = len(effective_path)
         root_label = self._get_root_label(max_start, 0, True)
         tree = Tree(root_label, guide_style=self.colors.guide)
-        self._add_children(tree, self, True, effective_path, max_start, 0, selected_depth)
+        self._add_children(
+            tree, self, True, effective_path, max_start, 0, selected_depth
+        )
         console.print(tree)
 
     def _get_name_part(self, node: Union[group, command, Chain]) -> str:
         args_parts = []
-        args_list = node.arguments if hasattr(node, "arguments") else node.effective_arguments
+        args_list = (
+            node.arguments if hasattr(node, "arguments") else node.effective_arguments
+        )
         for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
             extra = []
@@ -522,7 +547,12 @@ class cli(group):
         args_str = " ".join(args_parts)
         if args_str:
             label.append(" ")
-            label.append(args_str, style="dim " + self.colors.argument if is_ancestor else self.colors.argument)
+            label.append(
+                args_str,
+                style="dim " + self.colors.argument
+                if is_ancestor
+                else self.colors.argument,
+            )
         name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
@@ -573,7 +603,9 @@ class cli(group):
         )
         label = Text()
         label.append(node.display_name, style=name_style)
-        args_list = node.arguments if isinstance(node, group) else node.effective_arguments
+        args_list = (
+            node.arguments if isinstance(node, group) else node.effective_arguments
+        )
         args_parts = []
         for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
             part = f"[{arg.name.upper()}"
