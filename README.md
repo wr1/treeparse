@@ -1,44 +1,41 @@
-![Deploy](https://github.com/wr1/treeparse/actions/workflows/ci.yml/badge.svg)![Version](https://img.shields.io/github/v/release/wr1/treeparse)
-
 # Treeparse
 
-CLI library aimed at displaying CLI structure in a concise and machine readable format, aimed at making CLI tools teachable to LLMs with one `--help` call. 
-<!-- ```bash -->
-<!-- toolx --help > helpx.txt
-grk single run helpx.txt "write a shell script that sets up a project, creates user profiles for X and Y, and lists the db contents" -->
-<!-- ``` -->
-<!-- CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help.  -->
-<!-- Aimed at showing CLI structure.  -->
+Intuitive CLI framework using argparse, rich, and pydantic.
 
-![gif](docs/assets/output.gif)
+## Overview
 
-## Features
+Treeparse is an intuitive CLI framework leveraging `argparse`, `rich`, and `pydantic` to create structured, testable command-line interfaces. It mirrors the tree-like help output of `treeclick` but uses `argparse` for parsing and `pydantic` for model-based definitions.
 
-- Define CLI structure using Pydantic models for groups, commands, arguments, and options.
-- Automatic validation of callback parameters against CLI definitions.
-- Rich tree-based help output with optional type display.
-- JSON help output.
-- Easily extensible and modular.
-- Command chaining with aggregate arguments and options.
-- Group-level options and arguments propagated to subcommands.
-- Customizable color themes (default, monochrome, mononeon).
+Key goals include speed, LLM transparency (JSON and rich tree help formats), ease of authoring (especially for AI-generated code), and future config file overriding (Hydra-like, not yet implemented).
 
-## Installation
+## Key Features
 
-```bash
-pip install treeparse
-```
+- **Object-Oriented Structure**: Define CLI using Pydantic models: `cli`, `group`, `command`, `argument`, `option`.
+- **Rich Tree Help**: Tree-structured help with branch pruning for subcommands, including higher levels.
+- **JSON Output**: `--json` / `-j` provides syntax-highlighted JSON of the CLI structure for LLM parsing.
+- **Parameter Validation**: Automatic matching of callback params to CLI definitions (names, types).
+- **Sorting**: `sort_key` for ordering elements in help outputs.
+- **Type and Default Display**: Optional `show_types` and `show_defaults` flags to include types and defaults in help.
+- **Nargs Support**: Handles variable arguments/options (e.g., `*`, `+` for lists).
+- **Boolean Handling**: Supports bool types with string-to-bool conversion; flag options (`store_true`).
+- **Argparse Abstraction**: Users work with models; parsing logic is hidden.
+- **Dynamic Alignment**: Help text aligns vertically, adjusting for type/default info.
 
-Or with development dependencies:
+## Structure
 
-```bash
-uv venv
-uv pip install -e .[dev]
-```
+- **cli**: Root with subgroups, commands, options, configs (e.g., `show_types`, `show_defaults`).
+- **group**: Nested groups with subgroups, commands, options.
+- **command**: Commands with callbacks, arguments, options.
+- **argument**: Positional args (type, nargs, default, etc.).
+- **option**: Flags/options (type, nargs, is_flag, default, etc.).
 
-## Usage
+Models are modularized into files: `argument.py`, `option.py`, `command.py`, `group.py`, `color_config.py`, `cli.py`.
 
-### Basic Example
+Initialization in `__init__.py` rebuilds models to handle forward references.
+
+## Usage Example
+
+From `examples/basic.py`:
 
 ```python
 from treeparse import cli, command
@@ -63,28 +60,33 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 ```
 
-Run with:
+Run: `python examples/basic.py hello`
 
-```bash
-python examples/basic.py hello
-```
+## Help Output
 
-### Demos 
+Tree-structured help prunes irrelevant branches for subcommands while retaining context. Supports long help text wrapping.
 
-![Demo scripts](docs/assets/demos.gif)
+## LLM Transparency
 
+- **Rich Tree Format**: Visual, human/LLM-readable tree.
+- **JSON Format**: Structured, parseable output for LLMs.
 
-## Development
+## Current Status
 
-- Run tests: `uv run pytest -v`
-- Lint: `ruff check --fix`
-- Format: `ruff format`
+- Implemented: Model definitions, tree/JSON help, validation, nargs, bool/flag support, type/default display.
+- Examples: `basic.py`, `demo.py` (complex), `list_demo.py` (nargs).
+- Tests: Extensive pytest coverage (validation, execution, outputs) with cov reporting.
+- Tools: Ruff for lint/format, pytest-cov for coverage.
+
+## Plan
+
+- [active], make cli (inherit from) a group, so that a higher level cli can be constructed that can add an existing CLI as a sub-cli without any additional code
+    - when this happens, use the layout options (colors, show_types etc) from the new top level
+
+Planned: Config overriding.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
-
-
+MIT License.
