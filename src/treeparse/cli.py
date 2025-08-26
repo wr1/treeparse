@@ -3,7 +3,7 @@ import argparse
 import sys
 import json
 import inspect
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
@@ -12,7 +12,7 @@ from .group import group
 from .command import command
 from .chain import Chain
 from .option import option
-from .color_config import color_config
+from .color_config import color_config, ColorTheme
 from .argument import argument
 
 
@@ -58,10 +58,16 @@ class cli(group):
     """CLI model with methods."""
 
     max_width: int = 120
+    theme: ColorTheme = ColorTheme.DEFAULT
     colors: color_config = color_config()
     show_types: bool = False
     show_defaults: bool = False
     line_connect: bool = False
+
+    @model_validator(mode="after")
+    def set_colors_from_theme(self):
+        self.colors = color_config.from_theme(self.theme)
+        return self
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -216,7 +222,7 @@ class cli(group):
                     self._add_args_and_opts_to_parser(child_parser, child.arguments, child.options)
                     self._build_subparser(child_parser, child, depth + 1, max_depth, inherited_args + child.arguments, inherited_opts + child.options)
                 else:  # command or Chain
-                    self._add_args_and_opts_to_parser(child_parser, child.effective_arguments, child.effective_options)
+                    self._add_args_and_opts_to_parser(child_parser, inherited_args + child.effective_arguments, inherited_opts + child.effective_options)
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
                     else:

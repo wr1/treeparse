@@ -55,6 +55,7 @@ app = cli(
     show_types=True,
     show_defaults=True,
     line_connect=True,
+    theme="monochrome",
 )
 
 info_cmd = command(
