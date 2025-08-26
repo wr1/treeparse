@@ -21,6 +21,8 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Install dependencies with uv
         run: uv sync --all-extras --dev  # Syncs dependencies from pyproject.toml
+      - name: Install build tool
+        run: uv pip install build
       - name: Build package with uv
         run: uv run python -m build  # Uses uv to run the build in the virtual environment
       - name: Publish package
