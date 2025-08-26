@@ -115,7 +115,9 @@ def test_command_validation_choices_default():
         cmd = command(
             name="test",
             callback=callback,
-            arguments=[argument(name="arg1", arg_type=int, default=4, choices=[1, 2, 3])],
+            arguments=[
+                argument(name="arg1", arg_type=int, default=4, choices=[1, 2, 3])
+            ],
         )
         cmd.validate()
     assert "Default value 4 not in choices [1, 2, 3]" in str(exc.value)
@@ -129,7 +131,11 @@ def test_command_validation_list_choices_default():
     cmd = command(
         name="test",
         callback=callback,
-        arguments=[argument(name="args", nargs="*", arg_type=int, default=[1, 2], choices=[1, 2, 3])],
+        arguments=[
+            argument(
+                name="args", nargs="*", arg_type=int, default=[1, 2], choices=[1, 2, 3]
+            )
+        ],
     )
     cmd.validate()  # Should not raise
 
@@ -138,7 +144,15 @@ def test_command_validation_list_choices_default():
         cmd = command(
             name="test",
             callback=callback,
-            arguments=[argument(name="args", nargs="*", arg_type=int, default=[1, 4], choices=[1, 2, 3])],
+            arguments=[
+                argument(
+                    name="args",
+                    nargs="*",
+                    arg_type=int,
+                    default=[1, 4],
+                    choices=[1, 2, 3],
+                )
+            ],
         )
         cmd.validate()
     assert "Default value 4 not in choices [1, 2, 3]" in str(exc.value)
@@ -191,8 +205,12 @@ def test_chain_validation():
     def cb2(b: str):
         pass
 
-    cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
-    cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)])
+    cmd1 = command(
+        name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)]
+    )
+    cmd2 = command(
+        name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)]
+    )
     chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
     chain_obj.validate()  # Should not raise
 
@@ -212,8 +230,12 @@ def test_chain_conflict():
     def cb2(a: str):
         pass
 
-    cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
-    cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="a", arg_type=str)])
+    cmd1 = command(
+        name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)]
+    )
+    cmd2 = command(
+        name="cmd2", callback=cb2, arguments=[argument(name="a", arg_type=str)]
+    )
     chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
     with pytest.raises(ValueError) as exc:
         _ = chain_obj.effective_arguments
