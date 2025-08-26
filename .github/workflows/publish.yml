@@ -25,7 +25,7 @@ jobs:
         run: uv run python -m build  # Uses uv to run the build in the virtual environment
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
+        # with:
           # No password needed; uses OIDC for trusted publishing
           # Ensure PyPI project is configured to trust this GitHub repository and workflow
           # See https://docs.pypi.org/trusted-publishers/ for setup instructions
