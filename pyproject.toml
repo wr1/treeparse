@@ -7,7 +7,7 @@ name = "treeparse"
 version = "0.1.2"
 description = "Intuitive CLI framework using argparse, rich, and pydantic"
 authors = [{ name = "wr1" }]
-requires-python = "~=3.8"
+requires-python = ">=3.8"
 dependencies = [
     "rich>=13.3.1,<14",
     "pydantic>=2.0.2,<3",
