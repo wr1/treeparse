@@ -18,7 +18,7 @@ class command(BaseModel):
     @computed_field
     @property
     def display_name(self) -> str:
-        """Get display name, stripping .py suffix if present."""
+        """Get display name."""
         return self.name
 
     @computed_field
