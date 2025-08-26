@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "treeparse"
-version = "0.1.2"
+version = "0.1.2.post1"
 description = "Intuitive CLI framework using argparse, rich, and pydantic"
 readme = "README.md"
 authors = [{ name = "wr1" }]
