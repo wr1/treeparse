@@ -49,7 +49,7 @@ def add_permission(user_id: str, permission: str):
 
 
 app = cli(
-    name="demo.py",
+    name="demo",
     help="This CLI provides commands to handle various tasks with subcommands for specific actions.",
     max_width=120,
     show_types=True,

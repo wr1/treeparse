@@ -2,9 +2,13 @@
 
 # Treeparse
 
-CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help. 
-Aimed at showing CLI structure. 
-
+CLI library aimed at displaying CLI structure in a concise and machine readable format, aimed at making CLI tools teachable to LLMs with one `--help` call. 
+<!-- ```bash -->
+<!-- toolx --help > helpx.txt
+grk single run helpx.txt "write a shell script that sets up a project, creates user profiles for X and Y, and lists the db contents" -->
+<!-- ``` -->
+<!-- CLI framework using argparse, rich, and pydantic, showing a treeview representation of CLI help.  -->
+<!-- Aimed at showing CLI structure.  -->
 
 ![gif](docs/assets/output.gif)
 
@@ -68,29 +72,10 @@ Run with:
 python examples/basic.py hello
 ```
 
-### Demo Example
+### Demos 
 
-See `examples/demo.py` for a more complex CLI with groups, subcommands, arguments, and options.
+![Demo scripts](docs/assets/demos.gif)
 
-### List Demo Example
-
-See `examples/list_demo.py` for demonstration of list arguments (nargs='*') and list options (nargs='+').
-
-### Chain Demo Example
-
-See `examples/chain_demo.py` for demonstration of command chaining.
-
-### Group Option Demo Example
-
-See `examples/group_option_demo.py` for demonstration of group-level options.
-
-### Group Argument Demo Example
-
-See `examples/group_arg_demo.py` for demonstration of group-level arguments.
-
-### Theme Demo Example
-
-See `examples/theme_demo.py` for demonstration of color themes.
 
 ## Development
 

@@ -8,7 +8,7 @@ basic_app.name = "basic"
 basic_app.sort_key = 100
 
 super_app = cli(
-    name="basic_super.py",
+    name="basic_super",
     line_connect=True,
     theme="monochrome",
     help="A super CLI that includes the basic CLI as a sub-CLI.",
