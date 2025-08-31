@@ -570,3 +570,33 @@ def test_group_argument_in_help(capsys):
         app.run()
     captured = capsys.readouterr()
     assert "user [ID, int]" in captured.out
+
+
+def test_group_option_inheritance():
+    called = []
+
+    def callback(name: str, verbose: bool):
+        called.append((name, verbose))
+
+    cmd = command(
+        name="greet",
+        callback=callback,
+        arguments=[argument(name="name", arg_type=str)],
+    )
+    grp = group(
+        name="user",
+        commands=[cmd],
+        options=[option(flags=["--verbose"], is_flag=True)],
+    )
+    app = cli(name="test", subgroups=[grp])
+
+    # Test with option
+    sys.argv = ["test", "user", "--verbose", "greet", "Alice"]
+    app.run()
+    assert called == [("Alice", True)]
+
+    # Test without option
+    called.clear()
+    sys.argv = ["test", "user", "greet", "Bob"]
+    app.run()
+    assert called == [("Bob", False)]

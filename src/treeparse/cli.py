@@ -167,6 +167,8 @@ class cli(group):
             kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
             if opt.is_flag:
                 kwargs["action"] = "store_true"
+                if opt.default is None:
+                    kwargs["default"] = False
             else:
                 kwargs["type"] = opt.arg_type if opt.arg_type != bool else str2bool
                 if opt.nargs is not None:
@@ -230,7 +232,7 @@ class cli(group):
                     self._add_args_and_opts_to_parser(
                         child_parser,
                         child.effective_arguments,
-                        inherited_opts + child.effective_options,
+                        child.effective_options,
                     )
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
