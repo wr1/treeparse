@@ -31,7 +31,14 @@ user_group = group(
     name="user",
     help="User interaction commands",
     commands=[greet_cmd, farewell_cmd],
-    options=[option(flags=["--message", "-m"], arg_type=str, help="Custom message to include", default="Have a great day!")],
+    options=[
+        option(
+            flags=["--message", "-m"],
+            arg_type=str,
+            help="Custom message to include",
+            default="Have a great day!",
+        )
+    ],
 )
 
 app = cli(
