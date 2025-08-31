@@ -35,7 +35,13 @@ app = cli(
     name="root_option_example",
     help="Example of root-level flag option propagated to commands",
     commands=[greet_cmd, farewell_cmd],
-    options=[option(flags=["--verbose", "-v"], is_flag=True, help="Enable verbose output at root level")],
+    options=[
+        option(
+            flags=["--verbose", "-v"],
+            is_flag=True,
+            help="Enable verbose output at root level",
+        )
+    ],
 )
 
 
