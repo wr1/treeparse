@@ -600,3 +600,26 @@ def test_group_option_inheritance():
     sys.argv = ["test", "user", "greet", "Bob"]
     app.run()
     assert called == [("Bob", False)]
+
+
+def test_group_arg_example():
+    called = []
+
+    def callback(name: str, user_id: int):
+        called.append((name, user_id))
+
+    cmd = command(
+        name="process",
+        callback=callback,
+        arguments=[argument(name="name", arg_type=str)],
+    )
+    grp = group(
+        name="user",
+        commands=[cmd],
+        arguments=[argument(name="user_id", arg_type=int)],
+    )
+    app = cli(name="test", subgroups=[grp])
+
+    sys.argv = ["test", "user", "456", "process", "Charlie"]
+    app.run()
+    assert called == [("Charlie", 456)]
