@@ -12,6 +12,7 @@ requires-python = ">=3.8"
 dependencies = [
     "rich>=13.3.1,<14",
     "pydantic>=2.0.2,<3",
+    "pyyaml>=6.0,<7",  # Added for YAML config support
 ]
 
 [project.scripts]
