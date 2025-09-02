@@ -236,7 +236,7 @@ class cli(group):
                 else:  # command or chain
                     self._add_args_and_opts_to_parser(
                         child_parser,
-                        child.effective_arguments,
+                        inherited_args + child.effective_arguments,
                         inheritable_inherited_opts + child.effective_options,
                     )
                     if isinstance(child, command):
@@ -442,14 +442,13 @@ class cli(group):
         consumed = 0
         for i, p in enumerate(path):
             if not hasattr(current, "subgroups"):
-                # If it's a command and there are more path elements, treat as args
-                if isinstance(current, command) and i < len(path) - 1:
+                if isinstance(current, command) and consumed < len(path):
                     break
                 raise ValueError(f"Path not found: {path}")
             children = current.subgroups + current.commands
             ch = next((c for c in children if c.display_name == p), None)
             if ch is None:
-                break
+                raise ValueError(f"Path not found: {path}")
             current = ch
             consumed = i + 1
         effective_path = path[:consumed]
