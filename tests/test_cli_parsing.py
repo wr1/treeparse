@@ -1,6 +1,6 @@
 import pytest
 import sys
-from treeparse import cli, command, argument, option
+from treeparse import cli, command, argument, option, chain, group
 
 
 def test_cli_build_parser():
