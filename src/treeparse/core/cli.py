@@ -173,7 +173,7 @@ class cli(group):
             if opt.is_flag:
                 kwargs["action"] = "store_true"
             else:
-                kwargs["type"] = opt.arg_type if opt.arg_type != bool else str2bool
+                kwargs["type"] = opt.arg_type if opt.arg_type is not bool else str2bool
                 if opt.nargs is not None:
                     kwargs["nargs"] = opt.nargs
             if opt.choices is not None:
@@ -184,7 +184,7 @@ class cli(group):
         for arg in args:
             kwargs = {
                 "help": arg.help,
-                "type": arg.arg_type if arg.arg_type != bool else str2bool,
+                "type": arg.arg_type if arg.arg_type is not bool else str2bool,
             }
             if arg.dest is not None:
                 kwargs["dest"] = arg.dest
@@ -292,9 +292,9 @@ class cli(group):
                 for param, p_type in param_types.items():
                     cli_type = provided.get(param)
                     # Handle list vs List equivalence
-                    if p_type == list and str(cli_type).startswith("typing.List"):
+                    if p_type is list and str(cli_type).startswith("typing.List"):
                         continue  # Consider them equivalent
-                    if str(p_type).startswith("typing.List") and cli_type == list:
+                    if str(p_type).startswith("typing.List") and cli_type is list:
                         continue
                     if cli_type != p_type:
                         type_mismatches.append(
