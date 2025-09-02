@@ -223,7 +223,9 @@ class cli(group):
                 )
                 if isinstance(child, group):
                     self._add_args_and_opts_to_parser(
-                        child_parser, child.arguments, child.options
+                        child_parser,
+                        inherited_args + child.arguments,
+                        inheritable_inherited_opts + child.options,
                     )
                     self._build_subparser(
                         child_parser,
@@ -236,7 +238,7 @@ class cli(group):
                 else:  # command or chain
                     self._add_args_and_opts_to_parser(
                         child_parser,
-                        inherited_args + child.effective_arguments,
+                        child.effective_arguments,
                         inheritable_inherited_opts + child.effective_options,
                     )
                     if isinstance(child, command):
@@ -417,19 +419,32 @@ class cli(group):
                 missing.append(arg.name)
         if missing:
             parser.error("the following arguments are required: " + ", ".join(missing))
+        # Collect effective args and opts from the path
+        effective_args = []
+        effective_opts = []
+        path_nodes = [self]
+        current_node = self
+        for p in path:
+            children = current_node.subgroups + current_node.commands
+            child = next((c for c in children if c.display_name == p), None)
+            if child:
+                path_nodes.append(child)
+                current_node = child
+        for node in path_nodes:
+            effective_args.extend(node.arguments)
+            effective_opts.extend(node.options)
+        provided_names = set()
+        for arg in effective_args:
+            provided_names.add(arg.dest or arg.name)
+        for opt in effective_opts:
+            provided_names.add(opt.get_dest())
         arg_dict = {
             k: v
             for k, v in vars(args).items()
-            if not k.startswith("command_") and k not in ("func", "chain_obj")
+            if not k.startswith("command_")
+            and k not in ("func", "chain_obj")
+            and k in provided_names
         }
-        # Filter arg_dict to only include parameters expected by the current command
-        if isinstance(current, command):
-            provided_names = set()
-            for arg in current.effective_arguments:
-                provided_names.add(arg.dest or arg.name)
-            for opt in current.effective_options:
-                provided_names.add(opt.get_dest())
-            arg_dict = {k: v for k, v in arg_dict.items() if k in provided_names}
         if hasattr(args, "chain_obj"):
             args.func(args.chain_obj, **arg_dict)
         else:
