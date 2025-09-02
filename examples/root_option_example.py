@@ -38,7 +38,8 @@ app = cli(
     options=[
         option(
             flags=["--verbose", "-v"],
-            is_flag=True,
+            arg_type=bool,
+            default=False,
             help="Enable verbose output at root level",
         )
     ],

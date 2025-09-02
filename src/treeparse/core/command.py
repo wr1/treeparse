@@ -51,8 +51,8 @@ class command(BaseModel):
             provided[dest] = arg_type
         for opt in self.options:
             dest = opt.get_dest()
-            opt_type = bool if opt.is_flag else opt.arg_type
-            if opt.nargs in ["*", "+"] and not opt.is_flag:
+            opt_type = opt.arg_type
+            if opt.nargs in ["*", "+"]:
                 opt_type = List[opt_type]
             provided[dest] = opt_type
         provided_names = set(provided.keys())
@@ -97,10 +97,6 @@ class command(BaseModel):
                             f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
                         )
         for opt in self.options:
-            if opt.is_flag and opt.choices is not None:
-                raise ValueError(
-                    f"Choices not applicable for flag option '{opt.flags[0]}' in command '{self.name}'"
-                )
             if opt.choices is not None and opt.default is not None:
                 if opt.nargs in ["*", "+"] and isinstance(opt.default, list):
                     for d in opt.default:

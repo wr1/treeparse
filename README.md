@@ -20,7 +20,7 @@ Key goals include speed, LLM transparency (JSON and rich tree help formats), eas
 - **Sorting**: `sort_key` for ordering elements in help outputs.
 - **Type and Default Display**: Optional `show_types` and `show_defaults` flags to include types and defaults in help.
 - **Nargs Support**: Handles variable arguments/options (e.g., `*`, `+` for lists).
-- **Boolean Handling**: Supports bool types with string-to-bool conversion; flag options (`store_true`).
+- **Boolean Handling**: Supports bool types with string-to-bool conversion.
 - **Argparse Abstraction**: Users work with models; parsing logic is hidden.
 - **Dynamic Alignment**: Help text aligns vertically, adjusting for type/default info.
 
@@ -30,7 +30,7 @@ Key goals include speed, LLM transparency (JSON and rich tree help formats), eas
 - **group**: Nested groups with subgroups, commands, options.
 - **command**: Commands with callbacks, arguments, options.
 - **argument**: Positional args (type, nargs, default, etc.).
-- **option**: Flags/options (type, nargs, is_flag, default, etc.).
+- **option**: Flags/options (type, nargs, default, etc.).
 
 Models are modularized into files: `argument.py`, `option.py`, `command.py`, `group.py`, `color_config.py`, `cli.py`.
 
@@ -78,7 +78,7 @@ Tree-structured help prunes irrelevant branches for subcommands while retaining 
 
 ## Current Status
 
-- Implemented: Model definitions, tree/JSON help, validation, nargs, bool/flag support, type/default display.
+- Implemented: Model definitions, tree/JSON help, validation, nargs, bool support, type/default display.
 - Examples: `basic.py`, `demo.py` (complex), `list_demo.py` (nargs).
 - Tests: Extensive pytest coverage (validation, execution, outputs) with cov reporting.
 - Tools: Ruff for lint/format, pytest-cov for coverage.

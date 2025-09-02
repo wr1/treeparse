@@ -13,11 +13,10 @@ class option(BaseModel):
     help: str = ""
     default: Any = None
     nargs: Union[int, str, None] = None
-    is_flag: bool = False
     choices: Optional[List[Any]] = None
     sort_key: int = 0
     required: bool = False
-    inherit: bool = True  # New field for inheritance control
+    inherit: bool = True
 
     def get_dest(self) -> str:
         """Compute the destination name for this option."""

@@ -117,7 +117,7 @@ def test_cli_list_bool_option():
     assert captured_flags == [True, False]
 
 
-def test_cli_flag_option():
+def test_cli_bool_option():
     called = [False]
     captured_flag = None
 
@@ -129,10 +129,10 @@ def test_cli_flag_option():
     cmd = command(
         name="flagtest",
         callback=callback,
-        options=[option(flags=["--flag", "-f"], is_flag=True)],
+        options=[option(flags=["--flag", "-f"], arg_type=bool, default=False)],
     )
     app = cli(name="test", commands=[cmd])
-    sys.argv = ["test", "flagtest", "--flag"]
+    sys.argv = ["test", "flagtest", "--flag", "true"]
     app.run()
     assert called[0]
     assert captured_flag is True

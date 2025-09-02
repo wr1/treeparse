@@ -47,7 +47,7 @@ def test_group_argument_in_help(capsys):
     assert "user [ID, int]" in captured.out
 
 
-@pytest.mark.skip("spurious fail")
+# @pytest.mark.skip("spurious fail")
 def test_group_option_inheritance():
     called = []
 
@@ -62,12 +62,12 @@ def test_group_option_inheritance():
     grp = group(
         name="user",
         commands=[cmd],
-        options=[option(flags=["--verbose"], is_flag=True)],
+        options=[option(flags=["--verbose"], arg_type=bool, default=False)],
     )
     app = cli(name="test", subgroups=[grp])
 
     # Test with option
-    sys.argv = ["test", "user", "--verbose", "greet", "Alice"]
+    sys.argv = ["test", "user", "--verbose", "true", "greet", "Alice"]
     app.run()
     assert called == [("Alice", True)]
 

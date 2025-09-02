@@ -21,7 +21,8 @@ def create_demo_cli():
         options=[
             option(
                 flags=["--verbose", "-v"],
-                is_flag=True,
+                arg_type=bool,
+                default=False,
                 help="Show detailed information.",
                 sort_key=0,
             ),

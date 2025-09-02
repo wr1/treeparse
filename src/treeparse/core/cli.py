@@ -115,7 +115,7 @@ class cli(group):
             d["options"] = [
                 {
                     **opt.model_dump(exclude={"arg_type"}),
-                    "arg_type": "bool" if opt.is_flag else opt.arg_type.__name__,
+                    "arg_type": opt.arg_type.__name__,
                     "choices": opt.choices,
                 }
                 for opt in sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
@@ -172,12 +172,9 @@ class cli(group):
             kwargs = {"dest": dest, "help": opt.help}
             if opt.default is not None:
                 kwargs["default"] = opt.default
-            if opt.is_flag:
-                kwargs["action"] = "store_true"
-            else:
-                kwargs["type"] = opt.arg_type if opt.arg_type is not bool else str2bool
-                if opt.nargs is not None:
-                    kwargs["nargs"] = opt.nargs
+            kwargs["type"] = opt.arg_type if opt.arg_type is not bool else str2bool
+            if opt.nargs is not None:
+                kwargs["nargs"] = opt.nargs
             if opt.choices is not None:
                 kwargs["choices"] = opt.choices
             if opt.required:
@@ -241,7 +238,7 @@ class cli(group):
                     self._add_args_and_opts_to_parser(
                         child_parser,
                         child.effective_arguments,
-                        inheritable_inherited_opts + child.effective_options,
+                        child.effective_options,  # Removed inheritable_inherited_opts to prevent default override
                     )
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
@@ -270,8 +267,8 @@ class cli(group):
                     provided[dest] = arg_type
                 for opt in effective_opts:
                     dest = opt.get_dest()
-                    opt_type = bool if opt.is_flag else opt.arg_type
-                    if opt.nargs in ["*", "+"] and not opt.is_flag:
+                    opt_type = opt.arg_type
+                    if opt.nargs in ["*", "+"]:
                         opt_type = List[opt_type]
                     provided[dest] = opt_type
                 sig = inspect.signature(node.callback)
@@ -325,10 +322,6 @@ class cli(group):
                                     f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
                                 )
                 for opt in node.options:  # only local options for this check
-                    if opt.is_flag and opt.choices is not None:
-                        raise ValueError(
-                            f"Choices not applicable for flag option '{opt.flags[0]}' in command '{node.name}'"
-                        )
                     if opt.choices is not None and opt.default is not None:
                         if opt.nargs in ["*", "+"] and isinstance(opt.default, list):
                             for d in opt.default:
@@ -524,7 +517,7 @@ class cli(group):
                 opt_name = ", ".join(flags)
                 opt_len = len(opt_name)
                 if self.show_types:
-                    type_name = "bool" if opt.is_flag else opt.arg_type.__name__
+                    type_name = opt.arg_type.__name__
                     opt_len += len(f": {type_name}")
                 if opt.choices is not None:
                     choices_str = f" ({'|'.join(map(str, opt.choices))})"
@@ -734,7 +727,7 @@ class cli(group):
         label.append(flags_str, style=option_style)
         type_part = ""
         if self.show_types:
-            type_name = "bool" if opt.is_flag else opt.arg_type.__name__
+            type_name = opt.arg_type.__name__
             type_part = f": {type_name}"
         choices_part = ""
         if opt.choices is not None:
