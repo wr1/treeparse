@@ -4,7 +4,7 @@ from .command import command
 from .chain import chain
 from .group import group
 from .cli import cli
-from .color_config import color_config
+from ..utils.color_config import color_config
 
 # Rebuild models to handle forward references
 argument.model_rebuild()

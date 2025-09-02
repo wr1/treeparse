@@ -1,6 +1,6 @@
 # Treeparse
 
-Intuitive CLI framework using argparse, rich, and pydantic.
+CLI framework to make tools maximally transparent to LLMs. 
 
 ## Overview
 
