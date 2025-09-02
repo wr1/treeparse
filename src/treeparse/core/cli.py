@@ -291,9 +291,14 @@ class cli(group):
                 type_mismatches = []
                 for param, p_type in param_types.items():
                     cli_type = provided.get(param)
+                    # Handle list vs List equivalence
+                    if p_type == list and str(cli_type).startswith("typing.List"):
+                        continue  # Consider them equivalent
+                    if str(p_type).startswith("typing.List") and cli_type == list:
+                        continue
                     if cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback [green]{p_type.__name__}[/green] vs CLI [green]{cli_type.__name__}[/green]"
+                            f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
                         )
                 if type_mismatches:
                     error_msg = (
@@ -437,12 +442,15 @@ class cli(group):
         consumed = 0
         for i, p in enumerate(path):
             if not hasattr(current, "subgroups"):
+                # If it's a command and there are more path elements, treat as args
+                if isinstance(current, command) and i < len(path) - 1:
+                    break
                 raise ValueError(f"Path not found: {path}")
             children = current.subgroups + current.commands
-            child = next((c for c in children if c.display_name == p), None)
-            if child is None:
+            ch = next((c for c in children if c.display_name == p), None)
+            if ch is None:
                 break
-            current = child
+            current = ch
             consumed = i + 1
         effective_path = path[:consumed]
         # Build usage string
