@@ -1,5 +1,5 @@
 import pytest
-from treeparse import chain, command, argument, group
+from treeparse import chain, command, argument
 
 
 def test_chain_validation():

@@ -169,7 +169,9 @@ class cli(group):
     ):
         for opt in opts:
             dest = opt.get_dest()
-            kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
+            kwargs = {"dest": dest, "help": opt.help}
+            if opt.default is not None:
+                kwargs["default"] = opt.default
             if opt.is_flag:
                 kwargs["action"] = "store_true"
             else:
@@ -431,13 +433,35 @@ class cli(group):
                 path_nodes.append(child)
                 current_node = child
         for node in path_nodes:
-            effective_args.extend(node.arguments)
-            effective_opts.extend(node.options)
+            if hasattr(node, 'arguments'):
+                effective_args.extend(node.arguments)
+            else:
+                effective_args.extend(node.effective_arguments)
+            if hasattr(node, 'options'):
+                effective_opts.extend(node.options)
+            else:
+                effective_opts.extend(node.effective_options)
+        # For the current node, add inherited options from ancestors
+        if isinstance(current, (command, chain)):
+            for node in path_nodes[:-1]:
+                effective_opts.extend([opt for opt in node.options if opt.inherit])
+        # Collect all options from the CLI
+        all_options = []
+        def collect_opts(node):
+            if hasattr(node, 'options'):
+                all_options.extend(node.options)
+            if hasattr(node, 'subgroups'):
+                for g in node.subgroups:
+                    collect_opts(g)
+            if hasattr(node, 'commands'):
+                for c in node.commands:
+                    collect_opts(c)
+        collect_opts(self)
         provided_names = set()
+        for opt in all_options:
+            provided_names.add(opt.get_dest())
         for arg in effective_args:
             provided_names.add(arg.dest or arg.name)
-        for opt in effective_opts:
-            provided_names.add(opt.get_dest())
         arg_dict = {
             k: v
             for k, v in vars(args).items()
