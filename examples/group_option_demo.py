@@ -18,7 +18,14 @@ user_group = group(
     name="user",
     help="User commands",
     commands=[greet_cmd],
-    options=[option(flags=["--verbose", "-v"], is_flag=True, help="Verbose output")],
+    options=[
+        option(
+            flags=["--verbose", "-v"],
+            arg_type=bool,
+            default=False,
+            help="Verbose output",
+        )
+    ],
 )
 
 app = cli(

@@ -1,5 +1,5 @@
 import pytest
-from treeparse import option
+from treeparse import option, cli
 
 
 def test_option_model():
@@ -34,17 +34,30 @@ def test_option_dest_no_flags():
         opt.get_dest()
 
 
-def test_command_validation_flag_with_choices():
-    def callback(flag: bool):
+def test_command_validation_choices_default():
+    def callback(opt: int):
         pass
 
     from treeparse import command
 
+    # Valid default
+    cmd = command(
+        name="test",
+        callback=callback,
+        options=[option(flags=["--opt"], arg_type=int, default=3, choices=[2, 3, 4])],
+    )
+    app = cli(name="test", commands=[cmd])
+    app._validate()  # Should not raise
+
+    # Invalid default
     with pytest.raises(ValueError) as exc:
         cmd = command(
             name="test",
             callback=callback,
-            options=[option(flags=["--flag"], is_flag=True, choices=[True, False])],
+            options=[
+                option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])
+            ],
         )
-        cmd.validate()
-    assert "Choices not applicable for flag option '--flag'" in str(exc.value)
+        app = cli(name="test", commands=[cmd])
+        app._validate()
+    assert "Default value 5 not in choices [2, 3, 4]" in str(exc.value)
