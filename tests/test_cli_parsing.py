@@ -1,6 +1,6 @@
 import pytest
 import sys
-from treeparse import cli, command, argument, option, chain, group
+from treeparse import cli, command, argument, option
 
 
 def test_cli_build_parser():
@@ -40,7 +40,7 @@ def test_cli_list_arg():
     called = [False]
     captured_words = []
 
-    def callback(words: list):
+    def callback(words):
         called[0] = True
         captured_words.extend(words)
 
@@ -60,7 +60,7 @@ def test_cli_list_option():
     called = [False]
     captured_tags = []
 
-    def callback(tags: list):
+    def callback(tags):
         called[0] = True
         captured_tags.extend(tags)
 
@@ -101,7 +101,7 @@ def test_cli_list_bool_option():
     called = [False]
     captured_flags = []
 
-    def callback(flags: list):
+    def callback(flags):
         called[0] = True
         captured_flags.extend(flags)
 
