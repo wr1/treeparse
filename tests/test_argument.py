@@ -6,7 +6,7 @@ from treeparse import argument
 def test_argument_model():
     arg = argument(name="test", arg_type=int, help="Test arg")
     assert arg.name == "test"
-    assert arg.arg_type == int
+    assert arg.arg_type is int
 
 
 def test_command_validation_list_arg():
