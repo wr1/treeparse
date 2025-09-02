@@ -1,3 +1,5 @@
+"""option model."""
+
 from typing import Any, List, Optional, Union
 from pydantic import BaseModel
 
@@ -15,6 +17,7 @@ class option(BaseModel):
     choices: Optional[List[Any]] = None
     sort_key: int = 0
     required: bool = False
+    inherit: bool = True  # New field for inheritance control
 
     def get_dest(self) -> str:
         """Compute the destination name for this option."""

@@ -1,3 +1,5 @@
+"""command model."""
+
 from typing import Callable, List
 import inspect
 from pydantic import BaseModel, computed_field

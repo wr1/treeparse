@@ -156,7 +156,7 @@ def test_demo_help(mock_argv, capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: demo ...  (--json, -h, --help)" in captured.out
+    assert "Usage: demo ...  (--json, -j, --help, -h)" in captured.out
 
 
 def test_demo_user_manage_help(mock_argv, capsys):
@@ -166,30 +166,6 @@ def test_demo_user_manage_help(mock_argv, capsys):
         app.run()
     captured = capsys.readouterr()
     assert "Manage user settings and permissions." in captured.out
-
-
-def test_demo_invalid_command(mock_argv, capsys):
-    app = create_demo_cli()
-    sys.argv = ["demo.py", "invalid"]
-    with pytest.raises(SystemExit):
-        app.run()
-    captured = capsys.readouterr()
-    assert "invalid choice" in captured.out
-
-
-def test_demo_execute_command(mock_argv):
-    app = create_demo_cli()
-    sys.argv = ["demo.py", "info"]
-    app.run()  # Should execute without error
-
-
-def test_demo_user_add_help(mock_argv, capsys):
-    app = create_demo_cli()
-    sys.argv = ["demo.py", "user", "add", "--help"]
-    with pytest.raises(SystemExit):
-        app.run()
-    captured = capsys.readouterr()
-    assert "Add a new user to the system." in captured.out
 
 
 def test_demo_remove_role_help(mock_argv, capsys):

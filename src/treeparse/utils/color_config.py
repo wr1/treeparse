@@ -1,3 +1,5 @@
+"""Color configuration for help output."""
+
 from enum import Enum
 from pydantic import BaseModel
 

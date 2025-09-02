@@ -1,8 +1,11 @@
+"""CLI model with methods."""
+
 from typing import List, Union
 import argparse
 import sys
 import json
 import inspect
+from pathlib import Path
 from pydantic import model_validator
 from rich.console import Console
 from rich.tree import Tree
@@ -10,9 +13,10 @@ from rich.text import Text
 from rich.syntax import Syntax
 from .group import group
 from .command import command
-from .chain import Chain
+from .chain import chain
 from .option import option
-from .color_config import color_config, ColorTheme
+from ..utils.color_config import color_config, ColorTheme
+from ..utils.helpers import load_yaml_config
 from .argument import argument
 
 
@@ -28,7 +32,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
-def chain_runner(chain_obj: Chain, **kwargs):
+def chain_runner(chain_obj: chain, **kwargs):
     """Runner function for chain commands."""
     for sub_cmd in chain_obj.chained_commands:
         sig = inspect.signature(sub_cmd.callback)
@@ -56,7 +60,7 @@ class RichArgumentParser(argparse.ArgumentParser):
 
 
 class cli(group):
-    """CLI model with methods."""
+    """CLI model inheriting from group for sub-CLI composition."""
 
     max_width: int = 120
     theme: ColorTheme = ColorTheme.DEFAULT
@@ -64,6 +68,7 @@ class cli(group):
     show_types: bool = False
     show_defaults: bool = False
     line_connect: bool = False
+    yml_config: Path = None
 
     @model_validator(mode="after")
     def set_colors_from_theme(self):
@@ -73,8 +78,8 @@ class cli(group):
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
 
-        def recurse(node: Union["cli", group, command, Chain]) -> int:
-            if isinstance(node, (command, Chain)):
+        def recurse(node: Union["cli", group, command, chain]) -> int:
+            if isinstance(node, (command, chain)):
                 return 0
             children = (
                 node.subgroups + node.commands if hasattr(node, "subgroups") else []
@@ -87,9 +92,9 @@ class cli(group):
 
     def _get_node_from_path(
         self, path: List[str]
-    ) -> Union[group, command, Chain, "cli"]:
+    ) -> Union[group, command, chain, "cli"]:
         """Get node from path."""
-        current: Union["cli", group, command, Chain] = self
+        current: Union["cli", group, command, chain] = self
         for p in path:
             if not hasattr(current, "subgroups"):
                 raise ValueError(f"Path not found: {path}")
@@ -103,7 +108,7 @@ class cli(group):
     def structure_dict(self):
         """Return a dictionary representation of the CLI structure."""
 
-        def recurse(node: Union["cli", group, command, Chain], is_root: bool = True):
+        def recurse(node: Union["cli", group, command, chain], is_root: bool = True):
             d = {"name": node.name, "help": node.help}
             if hasattr(node, "sort_key"):
                 d["sort_key"] = node.sort_key
@@ -126,7 +131,7 @@ class cli(group):
             if isinstance(node, command):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
-            elif isinstance(node, Chain):
+            elif isinstance(node, chain):
                 d["type"] = "chain"
                 d["chained"] = [recurse(c, False) for c in node.chained_commands]
             else:
@@ -164,13 +169,13 @@ class cli(group):
     ):
         for opt in opts:
             dest = opt.get_dest()
-            kwargs = {"dest": dest, "help": opt.help, "default": opt.default}
+            kwargs = {"dest": dest, "help": opt.help}
+            if opt.default is not None:
+                kwargs["default"] = opt.default
             if opt.is_flag:
                 kwargs["action"] = "store_true"
-                if opt.default is None:
-                    kwargs["default"] = False
             else:
-                kwargs["type"] = opt.arg_type if opt.arg_type != bool else str2bool
+                kwargs["type"] = opt.arg_type if opt.arg_type is not bool else str2bool
                 if opt.nargs is not None:
                     kwargs["nargs"] = opt.nargs
             if opt.choices is not None:
@@ -181,7 +186,7 @@ class cli(group):
         for arg in args:
             kwargs = {
                 "help": arg.help,
-                "type": arg.arg_type if arg.arg_type != bool else str2bool,
+                "type": arg.arg_type if arg.arg_type is not bool else str2bool,
             }
             if arg.dest is not None:
                 kwargs["dest"] = arg.dest
@@ -206,6 +211,8 @@ class cli(group):
     ):
         if depth > max_depth:
             return
+        # Filter inherited options to only those that should be inherited
+        inheritable_inherited_opts = [opt for opt in inherited_opts if opt.inherit]
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
             key=lambda x: (x.sort_key, x.name),
@@ -218,7 +225,9 @@ class cli(group):
                 )
                 if isinstance(child, group):
                     self._add_args_and_opts_to_parser(
-                        child_parser, child.arguments, child.options
+                        child_parser,
+                        inherited_args + child.arguments,
+                        inheritable_inherited_opts + child.options,
                     )
                     self._build_subparser(
                         child_parser,
@@ -226,13 +235,13 @@ class cli(group):
                         depth + 1,
                         max_depth,
                         inherited_args + child.arguments,
-                        inherited_opts + child.options,
+                        inheritable_inherited_opts + child.options,
                     )
-                else:  # command or Chain
+                else:  # command or chain
                     self._add_args_and_opts_to_parser(
                         child_parser,
                         child.effective_arguments,
-                        child.effective_options,
+                        inheritable_inherited_opts + child.effective_options,
                     )
                     if isinstance(child, command):
                         child_parser.set_defaults(func=child.callback)
@@ -243,13 +252,15 @@ class cli(group):
         """Validate all commands in the CLI structure, considering inherited options and arguments."""
 
         def recurse(
-            node: Union["cli", group, command, Chain],
+            node: Union["cli", group, command, chain],
             inherited_args: List[argument] = [],
             inherited_opts: List[option] = [],
         ):
             if isinstance(node, command):
+                # Filter inherited options to only those that should be inherited
+                inheritable_opts = [opt for opt in inherited_opts if opt.inherit]
                 effective_args = inherited_args + node.arguments
-                effective_opts = inherited_opts + node.options
+                effective_opts = inheritable_opts + node.options
                 provided = {}
                 for arg in effective_args:
                     dest = arg.dest or arg.name
@@ -284,9 +295,14 @@ class cli(group):
                 type_mismatches = []
                 for param, p_type in param_types.items():
                     cli_type = provided.get(param)
+                    # Handle list vs List equivalence
+                    if p_type is list and str(cli_type).startswith("typing.List"):
+                        continue  # Consider them equivalent
+                    if str(p_type).startswith("typing.List") and cli_type is list:
+                        continue
                     if cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback [green]{p_type.__name__}[/green] vs CLI [green]{cli_type.__name__}[/green]"
+                            f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
                         )
                 if type_mismatches:
                     error_msg = (
@@ -325,7 +341,7 @@ class cli(group):
                                 raise ValueError(
                                     f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
                                 )
-            elif isinstance(node, Chain):
+            elif isinstance(node, chain):
                 node.validate()
             else:
                 for cmd in node.commands:
@@ -372,6 +388,13 @@ class cli(group):
                         path.append(a)
                 self.print_help(path)
             sys.exit(0)
+        # Load YAML config if provided
+        if self.yml_config:
+            config = load_yaml_config(str(self.yml_config))
+            # Simple override: set defaults from config (extend as needed)
+            for opt in self.options:
+                if opt.get_dest() in config:
+                    opt.default = config[opt.get_dest()]
         # Normal parsing
         try:
             args = parser.parse_args()
@@ -398,10 +421,55 @@ class cli(group):
                 missing.append(arg.name)
         if missing:
             parser.error("the following arguments are required: " + ", ".join(missing))
+        # Collect effective args and opts from the path
+        effective_args = []
+        effective_opts = []
+        path_nodes = [self]
+        current_node = self
+        for p in path:
+            children = current_node.subgroups + current_node.commands
+            child = next((c for c in children if c.display_name == p), None)
+            if child:
+                path_nodes.append(child)
+                current_node = child
+        for node in path_nodes:
+            if hasattr(node, "arguments"):
+                effective_args.extend(node.arguments)
+            else:
+                effective_args.extend(node.effective_arguments)
+            if hasattr(node, "options"):
+                effective_opts.extend(node.options)
+            else:
+                effective_opts.extend(node.effective_options)
+        # For the current node, add inherited options from ancestors
+        if isinstance(current, (command, chain)):
+            for node in path_nodes[:-1]:
+                effective_opts.extend([opt for opt in node.options if opt.inherit])
+        # Collect all options from the CLI
+        all_options = []
+
+        def collect_opts(node):
+            if hasattr(node, "options"):
+                all_options.extend(node.options)
+            if hasattr(node, "subgroups"):
+                for g in node.subgroups:
+                    collect_opts(g)
+            if hasattr(node, "commands"):
+                for c in node.commands:
+                    collect_opts(c)
+
+        collect_opts(self)
+        provided_names = set()
+        for opt in all_options:
+            provided_names.add(opt.get_dest())
+        for arg in effective_args:
+            provided_names.add(arg.dest or arg.name)
         arg_dict = {
             k: v
             for k, v in vars(args).items()
-            if not k.startswith("command_") and k not in ("func", "chain_obj")
+            if not k.startswith("command_")
+            and k not in ("func", "chain_obj")
+            and k in provided_names
         }
         if hasattr(args, "chain_obj"):
             args.func(args.chain_obj, **arg_dict)
@@ -415,12 +483,14 @@ class cli(group):
         consumed = 0
         for i, p in enumerate(path):
             if not hasattr(current, "subgroups"):
-                break
+                if isinstance(current, command) and consumed < len(path):
+                    break
+                raise ValueError(f"Path not found: {path}")
             children = current.subgroups + current.commands
-            child = next((c for c in children if c.display_name == p), None)
-            if child is None:
-                break
-            current = child
+            ch = next((c for c in children if c.display_name == p), None)
+            if ch is None:
+                raise ValueError(f"Path not found: {path}")
+            current = ch
             consumed = i + 1
         effective_path = path[:consumed]
         # Build usage string
@@ -429,7 +499,7 @@ class cli(group):
             path_str += " "
         if consumed < len(path):
             path_str += "[ARGS...] "
-        usage = f"[bold]Usage: {self.display_name} {path_str}... [rgb(45,45,45)] (--json, -h, --help)"
+        usage = f"[bold]Usage: {self.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h)"
         console = Console(width=self.max_width)
         console.print(usage)
         console.print(
@@ -438,7 +508,7 @@ class cli(group):
         max_start = 0
 
         def collect_recurse(
-            node: Union["cli", group, command, Chain],
+            node: Union["cli", group, command, chain],
             on_path: bool,
             remaining_path: List[str],
             depth: int,
@@ -461,7 +531,7 @@ class cli(group):
                     opt_len += len(choices_str)
                 opt_prefix = (depth + 1) * 4
                 max_start = max(max_start, opt_prefix + opt_len)
-            if isinstance(node, (command, Chain)):
+            if isinstance(node, (command, chain)):
                 return
             children = sorted(
                 (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
@@ -486,7 +556,7 @@ class cli(group):
         )
         console.print(tree)
 
-    def _get_name_part(self, node: Union[group, command, Chain]) -> str:
+    def _get_name_part(self, node: Union[group, command, chain]) -> str:
         args_parts = []
         args_list = (
             node.arguments if hasattr(node, "arguments") else node.effective_arguments
@@ -581,7 +651,7 @@ class cli(group):
 
     def _get_label(
         self,
-        node: Union[group, command, Chain],
+        node: Union[group, command, chain],
         max_start: int,
         on_path: bool,
         depth: int,
@@ -712,7 +782,7 @@ class cli(group):
     def _add_children(
         self,
         current_tree: Tree,
-        node: Union["cli", group, command, Chain],
+        node: Union["cli", group, command, chain],
         on_path: bool,
         remaining_path: List[str],
         max_start: int,
@@ -725,7 +795,7 @@ class cli(group):
         for opt in opts_sorted:
             opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
-        if isinstance(node, (command, Chain)):
+        if isinstance(node, (command, chain)):
             return
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],

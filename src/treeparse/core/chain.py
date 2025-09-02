@@ -5,7 +5,7 @@ from .argument import argument
 from .option import option
 
 
-class Chain(BaseModel):
+class chain(BaseModel):
     """Chain model that aggregates commands."""
 
     name: str

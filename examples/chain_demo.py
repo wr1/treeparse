@@ -1,4 +1,4 @@
-from treeparse import cli, command, Chain, argument
+from treeparse import cli, command, chain, argument
 
 called = []
 
@@ -27,7 +27,7 @@ cmd2 = command(
     arguments=[argument(name="y", arg_type=str)],
 )
 
-chain_cmd = Chain(name="pipeline", sort_key=100, chained_commands=[cmd1, cmd2])
+chain_cmd = chain(name="pipeline", sort_key=100, chained_commands=[cmd1, cmd2])
 
 app = cli(
     name="chain_demo",
