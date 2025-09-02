@@ -1,6 +1,6 @@
 import pytest
 import sys
-from treeparse import cli, command
+from treeparse import cli, command, argument, option
 
 
 def test_display_name_includes_py(capsys):

@@ -433,11 +433,11 @@ class cli(group):
                 path_nodes.append(child)
                 current_node = child
         for node in path_nodes:
-            if hasattr(node, 'arguments'):
+            if hasattr(node, "arguments"):
                 effective_args.extend(node.arguments)
             else:
                 effective_args.extend(node.effective_arguments)
-            if hasattr(node, 'options'):
+            if hasattr(node, "options"):
                 effective_opts.extend(node.options)
             else:
                 effective_opts.extend(node.effective_options)
@@ -447,15 +447,17 @@ class cli(group):
                 effective_opts.extend([opt for opt in node.options if opt.inherit])
         # Collect all options from the CLI
         all_options = []
+
         def collect_opts(node):
-            if hasattr(node, 'options'):
+            if hasattr(node, "options"):
                 all_options.extend(node.options)
-            if hasattr(node, 'subgroups'):
+            if hasattr(node, "subgroups"):
                 for g in node.subgroups:
                     collect_opts(g)
-            if hasattr(node, 'commands'):
+            if hasattr(node, "commands"):
                 for c in node.commands:
                     collect_opts(c)
+
         collect_opts(self)
         provided_names = set()
         for opt in all_options:
