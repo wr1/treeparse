@@ -5,7 +5,7 @@ from treeparse import option
 def test_option_model():
     opt = option(flags=["--test", "-t"], arg_type=str, help="Test option")
     assert opt.flags == ["--test", "-t"]
-    assert opt.arg_type == str
+    assert opt.arg_type is str
 
 
 def test_option_dest_prefer_long():
