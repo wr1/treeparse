@@ -2,7 +2,7 @@ import pytest
 import sys
 import json
 from typing import List
-from treeparse import cli, command, argument, option, Chain, group
+from treeparse import cli, command, argument, option, chain, group
 
 
 def test_cli_build_parser():
@@ -481,7 +481,7 @@ def test_help_with_arguments(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test greet [ARGS...] ...  (--json, -h, --help)" in captured.out
+    assert "Usage: test greet [ARGS...] ...  (--json, -j, --help, -h)" in captured.out
     assert "Greet someone." in captured.out
 
 
@@ -500,7 +500,7 @@ def test_chain_execution():
     cmd2 = command(
         name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)]
     )
-    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 
     sys.argv = ["test", "chain", "42", "hello"]
@@ -517,7 +517,7 @@ def test_chain_help(capsys):
 
     cmd1 = command(name="cmd1", callback=cb1)
     cmd2 = command(name="cmd2", callback=cb2)
-    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 
     sys.argv = ["test", "--help"]

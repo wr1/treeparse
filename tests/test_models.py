@@ -1,6 +1,6 @@
 import pytest
 from typing import List
-from treeparse import argument, option, command, group, Chain
+from treeparse import argument, option, command, group, chain
 
 
 def test_argument_model():
@@ -211,7 +211,7 @@ def test_chain_validation():
     cmd2 = command(
         name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)]
     )
-    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
     chain_obj.validate()  # Should not raise
 
     # Check generated help
@@ -236,7 +236,7 @@ def test_chain_conflict():
     cmd2 = command(
         name="cmd2", callback=cb2, arguments=[argument(name="a", arg_type=str)]
     )
-    chain_obj = Chain(name="chain", chained_commands=[cmd1, cmd2])
+    chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
     with pytest.raises(ValueError) as exc:
         _ = chain_obj.effective_arguments
     assert "Conflicting argument dest 'a'" in str(exc.value)
