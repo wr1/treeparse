@@ -1,6 +1,8 @@
+[![ci](https://github.com/wr1/treeparse/actions/workflows/ci.yml/badge.svg)](https://github.com/wr1/treeparse/actions/workflows/ci.yml)
+![Version](https://img.shields.io/github/v/release/wr1/treeparse)
 # Treeparse
 
-CLI framework to make tools maximally transparent to LLMs. 
+CLI framework to make command line tools maximally transparent to LLMs. 
 
 ## Overview
 
