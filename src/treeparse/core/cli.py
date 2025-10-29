@@ -118,7 +118,7 @@ class cli(group):
                     "arg_type": opt.arg_type.__name__,
                     "choices": opt.choices,
                 }
-                for opt in sorted(node.options, key=lambda x: (x.sort_key, x.flags[0]))
+                for opt in sorted(node.options, key=lambda x: x.sort_key)
             ]
             d["arguments"] = [
                 {
@@ -126,7 +126,7 @@ class cli(group):
                     "arg_type": arg.arg_type.__name__,
                     "choices": arg.choices,
                 }
-                for arg in sorted(node.arguments, key=lambda x: (x.sort_key, x.name))
+                for arg in sorted(node.arguments, key=lambda x: x.sort_key)
             ]
             if isinstance(node, command):
                 d["type"] = "command"
@@ -142,12 +142,12 @@ class cli(group):
             if hasattr(node, "subgroups"):
                 d["subgroups"] = [
                     recurse(g, is_root=False)
-                    for g in sorted(node.subgroups, key=lambda x: (x.sort_key, x.name))
+                    for g in sorted(node.subgroups, key=lambda x: x.sort_key)
                 ]
             if hasattr(node, "commands"):
                 d["commands"] = [
                     recurse(c, is_root=False)
-                    for c in sorted(node.commands, key=lambda x: (x.sort_key, x.name))
+                    for c in sorted(node.commands, key=lambda x: x.sort_key)
                 ]
             return d
 
@@ -212,7 +212,7 @@ class cli(group):
         inheritable_inherited_opts = [opt for opt in inherited_opts if opt.inherit]
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
-            key=lambda x: (x.sort_key, x.name),
+            key=lambda x: x.sort_key,
         )
         if children:
             subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
@@ -511,7 +511,7 @@ class cli(group):
             prefix_len = depth * 4
             max_start = max(max_start, prefix_len + name_len)
             opts = node.options if hasattr(node, "options") else node.effective_options
-            opts_sorted = sorted(opts, key=lambda x: (x.sort_key, x.flags[0]))
+            opts_sorted = sorted(opts, key=lambda x: x.sort_key)
             for opt in opts_sorted:
                 flags = sorted(opt.flags, key=lambda f: (-len(f), f))
                 opt_name = ", ".join(flags)
@@ -528,7 +528,7 @@ class cli(group):
                 return
             children = sorted(
                 (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
-                key=lambda x: (x.sort_key, x.name),
+                key=lambda x: x.sort_key,
             )
             if on_path and remaining_path:
                 next_name = remaining_path[0]
@@ -554,7 +554,7 @@ class cli(group):
         args_list = (
             node.arguments if hasattr(node, "arguments") else node.effective_arguments
         )
-        for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
+        for arg in sorted(args_list, key=lambda x: x.sort_key):
             part = f"[{arg.name.upper()}"
             extra = []
             if self.show_types:
@@ -598,7 +598,7 @@ class cli(group):
         label = Text()
         label.append(self.display_name, style=style)
         args_parts = []
-        for arg in sorted(self.arguments, key=lambda x: (x.sort_key, x.name)):
+        for arg in sorted(self.arguments, key=lambda x: x.sort_key):
             part = f"[{arg.name.upper()}"
             extra = []
             if self.show_types:
@@ -672,7 +672,7 @@ class cli(group):
             node.arguments if isinstance(node, group) else node.effective_arguments
         )
         args_parts = []
-        for arg in sorted(args_list, key=lambda x: (x.sort_key, x.name)):
+        for arg in sorted(args_list, key=lambda x: x.sort_key):
             part = f"[{arg.name.upper()}"
             extra = []
             if self.show_types:
@@ -784,7 +784,7 @@ class cli(group):
     ):
         is_ancestor = depth < selected_depth
         opts = node.options if hasattr(node, "options") else node.effective_options
-        opts_sorted = sorted(opts, key=lambda x: (x.sort_key, x.flags[0]))
+        opts_sorted = sorted(opts, key=lambda x: x.sort_key)
         for opt in opts_sorted:
             opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor)
             current_tree.add(opt_label)
@@ -792,7 +792,7 @@ class cli(group):
             return
         children = sorted(
             (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
-            key=lambda x: (x.sort_key, x.name),
+            key=lambda x: x.sort_key,
         )
         if on_path and remaining_path:
             next_name = remaining_path[0]
