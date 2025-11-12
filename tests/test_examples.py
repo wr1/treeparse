@@ -1,5 +1,25 @@
 import sys
-from examples import basic, demo, list_demo, choice_demo, group_option_demo, group_arg_demo, chain_demo, theme_demo
+import importlib.util
+import os
+import pytest
+
+# Helper to import example modules
+dir_path = os.path.join(os.path.dirname(__file__), '..', 'examples')
+
+def import_example(name):
+    spec = importlib.util.spec_from_file_location(name, os.path.join(dir_path, f'{name}.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+basic = import_example('basic')
+demo = import_example('demo')
+list_demo = import_example('list_demo')
+choice_demo = import_example('choice_demo')
+group_option_demo = import_example('group_option_demo')
+group_arg_demo = import_example('group_arg_demo')
+chain_demo = import_example('chain_demo')
+theme_demo = import_example('theme_demo')
 
 
 def test_basic_example(capsys):
