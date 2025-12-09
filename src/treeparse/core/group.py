@@ -18,6 +18,7 @@ class group(BaseModel):
     options: List[option] = []
     arguments: List[argument] = []
     sort_key: int = 0
+    fold: bool = False
 
     @property
     def display_name(self) -> str:
