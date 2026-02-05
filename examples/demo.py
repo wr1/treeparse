@@ -77,7 +77,7 @@ app.commands.append(info_cmd)
 project = group(name="project", help="Manage project-related operations.")
 app.subgroups.append(project)
 
-user = group(name="user", help="Manage user-related operations.")
+user = group(name="user", help="Manage user-related operations.", fold=True)
 app.subgroups.append(user)
 
 add_cmd = command(
@@ -121,7 +121,7 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of lines",
+            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
             arg_type=int,
             sort_key=0,
             default=2,
