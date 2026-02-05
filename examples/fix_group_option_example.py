@@ -4,8 +4,10 @@ from treeparse import cli, command, argument, option, group
 
 called = []
 
+
 def callback(name: str, verbose: bool = False):
     called.append((name, verbose))
+
 
 cmd = command(
     name="greet",
@@ -22,6 +24,7 @@ app = cli(name="test", subgroups=[grp])
 
 if __name__ == "__main__":
     import sys
+
     sys.argv = ["test", "user", "--verbose", "true", "greet", "Alice"]
     app.run()
     print(called)  # Should print [('Alice', True)]

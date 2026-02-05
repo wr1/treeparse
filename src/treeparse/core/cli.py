@@ -535,7 +535,9 @@ class cli(group):
                 next_name = remaining_path[0]
                 for child in children:
                     if child.display_name == next_name:
-                        collect_recurse(child, True, remaining_path[1:], depth + 1, root_cli)
+                        collect_recurse(
+                            child, True, remaining_path[1:], depth + 1, root_cli
+                        )
                         break
             else:
                 for child in children:
@@ -551,10 +553,14 @@ class cli(group):
         selected_depth = len(effective_path)
         root_label = self._get_root_label(max_start, 0, True, self)
         tree = Tree(root_label, guide_style=self.colors.guide)
-        self._add_children(tree, self, True, effective_path, max_start, 0, selected_depth, self)
+        self._add_children(
+            tree, self, True, effective_path, max_start, 0, selected_depth, self
+        )
         console.print(tree)
 
-    def _get_name_part(self, node: Union[group, command, chain], root_cli: "cli") -> str:
+    def _get_name_part(
+        self, node: Union[group, command, chain], root_cli: "cli"
+    ) -> str:
         args_parts = []
         args_list = (
             node.arguments if hasattr(node, "arguments") else node.effective_arguments
@@ -595,10 +601,14 @@ class cli(group):
             lines.append(" ".join(current))
         return lines
 
-    def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool, root_cli: "cli") -> Text:
+    def _get_root_label(
+        self, max_start: int, depth: int, is_ancestor: bool, root_cli: "cli"
+    ) -> Text:
         style = "dim " + root_cli.colors.app if is_ancestor else root_cli.colors.app
         help_style = (
-            "dim " + root_cli.colors.normal_help if is_ancestor else root_cli.colors.normal_help
+            "dim " + root_cli.colors.normal_help
+            if is_ancestor
+            else root_cli.colors.normal_help
         )
         label = Text()
         label.append(self.display_name, style=style)
@@ -627,7 +637,9 @@ class cli(group):
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if self.help:
-            help_lines = self._wrap_help(self.help, root_cli.max_width - (max_start + 1))
+            help_lines = self._wrap_help(
+                self.help, root_cli.max_width - (max_start + 1)
+            )
             if root_cli.line_connect:
                 label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
                 label.append(help_lines[0], style=help_style)
@@ -670,7 +682,9 @@ class cli(group):
             else root_cli.colors.command
         )
         arg_style = (
-            "dim " + root_cli.colors.argument if is_ancestor else root_cli.colors.argument
+            "dim " + root_cli.colors.argument
+            if is_ancestor
+            else root_cli.colors.argument
         )
         label = Text()
         label.append(node.display_name, style=name_style)
@@ -697,7 +711,9 @@ class cli(group):
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if node.help:
-            help_lines = self._wrap_help(node.help, root_cli.max_width - (max_start + 1))
+            help_lines = self._wrap_help(
+                node.help, root_cli.max_width - (max_start + 1)
+            )
             if root_cli.line_connect:
                 label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
                 label.append(help_lines[0], style=help_style)
@@ -718,11 +734,20 @@ class cli(group):
         return label
 
     def _get_folded_label(
-        self, node: group, max_start: int, depth: int, is_ancestor: bool, root_cli: "cli"
+        self,
+        node: group,
+        max_start: int,
+        depth: int,
+        is_ancestor: bool,
+        root_cli: "cli",
     ) -> Text:
-        name_style = "dim " + root_cli.colors.group if is_ancestor else root_cli.colors.group
+        name_style = (
+            "dim " + root_cli.colors.group if is_ancestor else root_cli.colors.group
+        )
         help_style = (
-            "dim " + root_cli.colors.normal_help if is_ancestor else root_cli.colors.normal_help
+            "dim " + root_cli.colors.normal_help
+            if is_ancestor
+            else root_cli.colors.normal_help
         )
         label = Text()
         label.append(f"{node.display_name} [...]", style=name_style)
@@ -730,7 +755,9 @@ class cli(group):
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
         if node.help:
-            help_lines = self._wrap_help(node.help, root_cli.max_width - (max_start + 1))
+            help_lines = self._wrap_help(
+                node.help, root_cli.max_width - (max_start + 1)
+            )
             if root_cli.line_connect:
                 label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
                 label.append(help_lines[0], style=help_style)
@@ -751,13 +778,20 @@ class cli(group):
         return label
 
     def _get_option_label(
-        self, opt: option, max_start: int, depth: int, is_ancestor: bool, root_cli: "cli"
+        self,
+        opt: option,
+        max_start: int,
+        depth: int,
+        is_ancestor: bool,
+        root_cli: "cli",
     ) -> Text:
         option_style = (
             "dim " + root_cli.colors.option if is_ancestor else root_cli.colors.option
         )
         option_help_style = (
-            "dim " + root_cli.colors.option_help if is_ancestor else root_cli.colors.option_help
+            "dim " + root_cli.colors.option_help
+            if is_ancestor
+            else root_cli.colors.option_help
         )
         default_style = "bold dim white"
         label = Text()
@@ -826,7 +860,9 @@ class cli(group):
         opts = node.options if hasattr(node, "options") else node.effective_options
         opts_sorted = sorted(opts, key=lambda x: x.sort_key)
         for opt in opts_sorted:
-            opt_label = self._get_option_label(opt, max_start, depth + 1, is_ancestor, root_cli)
+            opt_label = self._get_option_label(
+                opt, max_start, depth + 1, is_ancestor, root_cli
+            )
             current_tree.add(opt_label)
         if isinstance(node, (command, chain)):
             return
@@ -857,11 +893,22 @@ class cli(group):
         else:
             for child in children:
                 if isinstance(child, group) and child.fold:
-                    folded_label = self._get_folded_label(child, max_start, depth + 1, False, root_cli)
+                    folded_label = self._get_folded_label(
+                        child, max_start, depth + 1, False, root_cli
+                    )
                     current_tree.add(folded_label)
                 else:
-                    child_label = self._get_label(child, max_start, False, depth + 1, False, root_cli)
+                    child_label = self._get_label(
+                        child, max_start, False, depth + 1, False, root_cli
+                    )
                     child_tree = current_tree.add(child_label)
                     self._add_children(
-                        child_tree, child, False, [], max_start, depth + 1, selected_depth, root_cli
+                        child_tree,
+                        child,
+                        False,
+                        [],
+                        max_start,
+                        depth + 1,
+                        selected_depth,
+                        root_cli,
                     )

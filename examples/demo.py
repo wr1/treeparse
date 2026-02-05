@@ -160,7 +160,7 @@ add_perm_cmd = command(
     help="Add a permission for a user.",
     callback=add_permission,
     arguments=[
-            argument(name="user_id", arg_type=str, sort_key=0),
+        argument(name="user_id", arg_type=str, sort_key=0),
         argument(name="permission", arg_type=str, sort_key=1),
     ],
 )
