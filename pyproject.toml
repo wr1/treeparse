@@ -28,6 +28,7 @@ group_option_example = "examples.group_option_example:main"
 list_demo = "examples.list_demo:main"
 root_option_example = "examples.root_option_example:main"
 theme_demo = "examples.theme_demo:main"
+treeparse = "treeparse.cli:main"  # Added for CLI callable
 
 [dependency-groups]
 dev = [

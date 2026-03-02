@@ -1,9 +1,11 @@
-from .core.argument import argument
-from .core.option import option
-from .core.command import command
-from .core.chain import chain
-from .core.group import group
-from .core.cli import cli
+"""Treeparse package initialization."""
+
+from .models.argument import argument
+from .models.option import option
+from .models.command import command
+from .models.chain import chain
+from .models.group import group
+from .models.cli import cli
 from .utils.color_config import color_config
 
 # Rebuild models to handle forward references
