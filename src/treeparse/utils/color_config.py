@@ -64,13 +64,13 @@ class color_config(BaseModel):
             # Red / White(light grey) / Blue patriotic theme
             # "White" replaced with light grey (rgb-based) for perfect readability on light terminals
             return cls(
-                app="bold rgb(255,50,50)",           # red for the app title
-                group="bold rgb(160,180,255)",        # blue for groups
-                command="rgb(80,90,255)",           # blue for commands
-                argument="rgb(237,237,237)",               # light grey (instead of white)
-                option="rgb(255,50,50)",             # red accents for options
+                app="bold rgb(255,50,50)",  # red for the app title
+                group="bold rgb(160,180,255)",  # blue for groups
+                command="rgb(80,90,255)",  # blue for commands
+                argument="rgb(237,237,237)",  # light grey (instead of white)
+                option="rgb(255,50,50)",  # red accents for options
                 option_help="italic rgb(255,80,80)",
-                requested_help="bold rgb(237,237,237)",    # light grey help (user request)
+                requested_help="bold rgb(237,237,237)",  # light grey help (user request)
                 normal_help="bold rgb(185,185,185)",  # soft light grey for dimmed text
                 type_color="dim rgb(120,140,255)",
                 connector="rgb(105,105,105)",
