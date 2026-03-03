@@ -1,3 +1,5 @@
+"""Chain model for aggregating commands."""
+
 from typing import List
 from pydantic import BaseModel, model_validator, computed_field
 from .command import command

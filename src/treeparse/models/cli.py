@@ -1,12 +1,12 @@
 """CLI model with methods."""
 
-from typing import List, Union
+from typing import List, Union, Optional, Callable, Union as TypingUnion, get_origin
 import argparse
 import sys
 import json
 import inspect
 from pathlib import Path
-from pydantic import model_validator
+from pydantic import model_validator, computed_field
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
@@ -69,11 +69,27 @@ class cli(group):
     show_defaults: bool = False
     line_connect: bool = False
     yml_config: Path = None
+    callback: Optional[Callable[..., None]] = None
 
     @model_validator(mode="after")
     def set_colors_from_theme(self):
         self.colors = color_config.from_theme(self.theme)
         return self
+
+    @property
+    def is_flat(self) -> bool:
+        """True when the CLI has no subcommands/groups (root acts as the command)."""
+        return len(self.subgroups) == 0 and len(self.commands) == 0
+
+    @computed_field
+    @property
+    def effective_arguments(self) -> List[argument]:
+        return self.arguments
+
+    @computed_field
+    @property
+    def effective_options(self) -> List[option]:
+        return self.options
 
     def get_max_depth(self) -> int:
         """Compute max depth of CLI tree."""
@@ -128,7 +144,9 @@ class cli(group):
                 }
                 for arg in sorted(node.arguments, key=lambda x: x.sort_key)
             ]
-            if isinstance(node, command):
+            if isinstance(node, command) or (
+                isinstance(node, cli) and node.is_flat and node.callback is not None
+            ):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
             elif isinstance(node, chain):
@@ -161,7 +179,13 @@ class cli(group):
             prog=self.display_name, description=self.help, add_help=False
         )
         self._add_args_and_opts_to_parser(parser, self.arguments, self.options)
-        self._build_subparser(parser, self, 1, max_depth, self.arguments, self.options)
+        if self.is_flat:
+            if self.callback is not None:
+                parser.set_defaults(func=self.callback)
+        else:
+            self._build_subparser(
+                parser, self, 1, max_depth, self.arguments, self.options
+            )
         return parser
 
     def _add_args_and_opts_to_parser(
@@ -247,6 +271,17 @@ class cli(group):
 
     def _validate(self):
         """Validate all commands in the CLI structure, considering inherited options and arguments."""
+        if self.is_flat and self.callback is not None:
+            # Reuse the exact validation logic from command (no duplication)
+            temp = command(
+                name=self.name,
+                help=self.help,
+                callback=self.callback,
+                arguments=self.arguments,
+                options=self.options,
+            )
+            temp.validate()
+            return
 
         def recurse(
             node: Union["cli", group, command, chain],
@@ -297,7 +332,10 @@ class cli(group):
                         continue  # Consider them equivalent
                     if str(p_type).startswith("typing.List") and cli_type is list:
                         continue
-                    if cli_type != p_type:
+                    # Skip type check for Union types to allow flexibility
+                    if get_origin(p_type) is TypingUnion:
+                        continue
+                    elif cli_type != p_type:
                         type_mismatches.append(
                             f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
                         )

@@ -13,7 +13,7 @@ description = "Intuitive CLI framework using argparse, rich, and pydantic"
 name = "treeparse"
 readme = "README.md"
 requires-python = ">=3.8"
-version = "0.1.6"
+version = "0.1.7"
 
 [project.scripts]
 basic = "examples.basic:main"
@@ -28,6 +28,7 @@ group_option_example = "examples.group_option_example:main"
 list_demo = "examples.list_demo:main"
 root_option_example = "examples.root_option_example:main"
 theme_demo = "examples.theme_demo:main"
+treeparse = "treeparse.cli:main"  # Added for CLI callable
 
 [dependency-groups]
 dev = [

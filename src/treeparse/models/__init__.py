@@ -1,3 +1,5 @@
+"""Models package initialization."""
+
 from .argument import argument
 from .option import option
 from .command import command

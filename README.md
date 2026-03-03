@@ -85,13 +85,6 @@ Tree-structured help prunes irrelevant branches for subcommands while retaining 
 - Tests: Extensive pytest coverage (validation, execution, outputs) with cov reporting.
 - Tools: Ruff for lint/format, pytest-cov for coverage.
 
-## Plan
-
-- [active], make cli (inherit from) a group, so that a higher level cli can be constructed that can add an existing CLI as a sub-cli without any additional code
-    - when this happens, use the layout options (colors, show_types etc) from the new top level
-
-Planned: Config overriding.
-
 ## License
 
 MIT License.

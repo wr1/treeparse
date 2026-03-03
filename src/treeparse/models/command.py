@@ -1,6 +1,6 @@
 """command model."""
 
-from typing import Callable, List
+from typing import Callable, List, Union as TypingUnion, get_origin
 import inspect
 from pydantic import BaseModel, computed_field
 from .argument import argument
@@ -72,9 +72,17 @@ class command(BaseModel):
         type_mismatches = []
         for param, p_type in param_types.items():
             cli_type = provided.get(param)
+            # Handle list vs List equivalence
+            if p_type is list and str(cli_type).startswith("typing.List"):
+                continue  # Consider them equivalent
+            if str(p_type).startswith("typing.List") and cli_type is list:
+                continue
+            # Skip type check for Union types to allow flexibility
+            if get_origin(p_type) is TypingUnion:
+                continue
             if cli_type != p_type:
                 type_mismatches.append(
-                    f"{param}: callback [green]{p_type.__name__}[/green] vs CLI [green]{cli_type.__name__}[/green]"
+                    f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
                 )
         if type_mismatches:
             error_msg = (
