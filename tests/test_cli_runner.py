@@ -52,7 +52,14 @@ def test_cli_runner_json_output():
 
 def test_cli_runner_invalid_choice():
     """Test invalid subcommand shows rich error and non-zero exit."""
-    app = cli(name="testcli")
+
+    # We add a real command so that subparsers are created and "invalid-cmd"
+    # triggers the "invalid choice" path (handled by RichArgumentParser)
+    def dummy():
+        pass
+
+    cmd = command(name="hello", callback=dummy)
+    app = cli(name="testcli", commands=[cmd])
     runner = CliRunner(app)
 
     result = runner.invoke(["invalid-cmd"])
