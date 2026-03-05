@@ -1,4 +1,4 @@
 .grk*
 *txt
-*json
+__*json
 __pycache__
