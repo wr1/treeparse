@@ -46,7 +46,8 @@ class CliRunner:
                     self.app.run()
                     exit_code = 0
                 except SystemExit as e:
-                    exit_code = e.code if isinstance(e.code, int) else 0
+                    # argparse usually exits with code 2 on usage errors
+                    exit_code = e.code if isinstance(e.code, int) else 2
                 except Exception as e:
                     stderr.write(f"Unexpected error: {e}\n")
                     exit_code = 1
