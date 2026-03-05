@@ -1,3 +1,3 @@
 - [x] code completion help for bash, zsh and fish (shtab optional dependency added)
 - [x] more complete error messages (RichArgumentParser already provides rich output + validation)
-- [x] cli testing helper/runner (CliRunner + CliResult added and exported)
+- [x] cli testing helper/runner (CliRunner + CliResult added + full dedicated test suite)
