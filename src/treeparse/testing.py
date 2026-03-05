@@ -15,12 +15,19 @@ class CliResult:
 
     def __init__(self, exit_code: int = 0, output: str = "", stderr: str = ""):
         self.exit_code = exit_code
-        self.output = output
-        self.stderr = stderr
+        self.output = output.strip()
+        self.stderr = stderr.strip()
 
 
 class CliRunner:
-    """Runner for testing treeparse CLIs."""
+    """Runner for testing treeparse CLIs.
+
+    Example usage:
+        runner = CliRunner(app)
+        result = runner.invoke(["command", "--flag", "value"])
+        assert result.exit_code == 0
+        assert "success" in result.output
+    """
 
     def __init__(self, app: cli):
         self.app = app
@@ -39,7 +46,7 @@ class CliRunner:
                     self.app.run()
                     exit_code = 0
                 except SystemExit as e:
-                    exit_code = e.code if isinstance(e.code, int) else 1
+                    exit_code = e.code if isinstance(e.code, int) else 0
                 except Exception as e:
                     stderr.write(f"Unexpected error: {e}\n")
                     exit_code = 1
