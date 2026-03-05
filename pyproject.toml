@@ -29,6 +29,7 @@ list_demo = "examples.list_demo:main"
 root_option_example = "examples.root_option_example:main"
 theme_demo = "examples.theme_demo:main"
 treeparse = "treeparse.cli:main"  # Added for CLI callable
+validation_error_demo = "examples.validation_error_demo:main"
 
 [project.optional-dependencies]
 completions = ["shtab>=1.7.1"]
