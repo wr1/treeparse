@@ -2,7 +2,7 @@
 ![Version](https://img.shields.io/github/v/release/wr1/treeparse)
 # Treeparse
 
-CLI framework to make command line tools maximally transparent to LLMs. 
+Tree based CLI framework for one-shot human and llm CLI transparency. 
 
 ## Overview
 
