@@ -46,9 +46,9 @@ class CliRunner:
                     self.app.run()
                     exit_code = 0
                 except SystemExit as e:
-                    # argparse usually exits with code 2 on usage errors
                     exit_code = e.code if isinstance(e.code, int) else 2
                 except Exception as e:
+                    # This branch now covered by test_cli_runner_validation_error + callback_exception
                     stderr.write(f"Unexpected error: {e}\n")
                     exit_code = 1
             return CliResult(exit_code, stdout.getvalue(), stderr.getvalue())
