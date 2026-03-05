@@ -53,8 +53,6 @@ def test_cli_runner_json_output():
 def test_cli_runner_invalid_choice():
     """Test invalid subcommand shows rich error and non-zero exit."""
 
-    # We add a real command so that subparsers are created and "invalid-cmd"
-    # triggers the "invalid choice" path (handled by RichArgumentParser)
     def dummy():
         pass
 
@@ -82,6 +80,27 @@ def test_cli_runner_callback_exception():
 
     assert result.exit_code == 1
     assert "Boom from callback" in result.stderr
+
+
+def test_cli_runner_validation_error():
+    """Test that CLI definition validation errors are captured (name/type mismatch etc.)."""
+
+    def bad(name: str, missing: int):
+        pass
+
+    cmd = command(
+        name="bad",
+        callback=bad,
+        arguments=[argument(name="name", arg_type=str)],
+    )
+    app = cli(name="testcli", commands=[cmd])
+    runner = CliRunner(app)
+
+    result = runner.invoke(["bad", "Alice"])
+
+    assert result.exit_code != 0
+    assert "parameter name mismatch" in result.output.lower()
+    assert "missing" in result.output.lower()
 
 
 def test_cli_runner_no_args_shows_help():
