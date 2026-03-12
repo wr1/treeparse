@@ -1,6 +1,6 @@
 """CLI testing helper/runner for treeparse.
 
-Provides `CliRunner` to make testing CLIs simple and clean (no manual sys.argv hacks).
+Provides `cli_runner` to make testing CLIs simple and clean (no manual sys.argv hacks).
 """
 
 import sys
@@ -10,7 +10,7 @@ from typing import List, Optional
 from .models.cli import cli
 
 
-class CliResult:
+class cli_result:
     """Result from invoking a CLI."""
 
     def __init__(self, exit_code: int = 0, output: str = "", stderr: str = ""):
@@ -19,11 +19,11 @@ class CliResult:
         self.stderr = stderr.strip()
 
 
-class CliRunner:
+class cli_runner:
     """Runner for testing treeparse CLIs.
 
     Example usage:
-        runner = CliRunner(app)
+        runner = cli_runner(app)
         result = runner.invoke(["command", "--flag", "value"])
         assert result.exit_code == 0
         assert "success" in result.output
@@ -32,7 +32,7 @@ class CliRunner:
     def __init__(self, app: cli):
         self.app = app
 
-    def invoke(self, args: Optional[List[str]] = None) -> CliResult:
+    def invoke(self, args: Optional[List[str]] = None) -> cli_result:
         """Invoke the CLI with the given arguments and capture output/exit code."""
         if args is None:
             args = []
@@ -51,6 +51,6 @@ class CliRunner:
                     # This branch now covered by test_cli_runner_validation_error + callback_exception
                     stderr.write(f"Unexpected error: {e}\n")
                     exit_code = 1
-            return CliResult(exit_code, stdout.getvalue(), stderr.getvalue())
+            return cli_result(exit_code, stdout.getvalue(), stderr.getvalue())
         finally:
             sys.argv = original_argv

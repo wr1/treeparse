@@ -1,6 +1,6 @@
 """Comprehensive tests for the CliRunner testing framework."""
 
-from treeparse import cli, command, argument, CliRunner
+from treeparse import cli, command, argument, cli_runner
 
 
 def test_cli_runner_success_with_args():
@@ -17,7 +17,7 @@ def test_cli_runner_success_with_args():
         arguments=[argument(name="name", arg_type=str)],
     )
     app = cli(name="testcli", commands=[cmd])
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["greet", "World"])
 
@@ -29,7 +29,7 @@ def test_cli_runner_success_with_args():
 def test_cli_runner_help_output():
     """Test that --help produces the rich tree help and exits 0."""
     app = cli(name="testcli", help="Test CLI for runner")
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["--help"])
 
@@ -41,7 +41,7 @@ def test_cli_runner_help_output():
 def test_cli_runner_json_output():
     """Test --json flag returns valid JSON structure."""
     app = cli(name="testcli", help="JSON test")
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["--json"])
 
@@ -58,7 +58,7 @@ def test_cli_runner_invalid_choice():
 
     cmd = command(name="hello", callback=dummy)
     app = cli(name="testcli", commands=[cmd])
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["invalid-cmd"])
 
@@ -74,7 +74,7 @@ def test_cli_runner_callback_exception():
 
     cmd = command(name="crash", callback=crash)
     app = cli(name="testcli", commands=[cmd])
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["crash"])
 
@@ -94,7 +94,7 @@ def test_cli_runner_validation_error():
         arguments=[argument(name="name", arg_type=str)],
     )
     app = cli(name="testcli", commands=[cmd])
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["bad", "Alice"])
 
@@ -106,7 +106,7 @@ def test_cli_runner_validation_error():
 def test_cli_runner_no_args_shows_help():
     """Test root call with no args falls back to help (as in real CLI)."""
     app = cli(name="testcli", help="Root help demo")
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke([])
 
@@ -135,7 +135,7 @@ def test_cli_runner_chain_execution():
 
     chain_cmd = chain(name="pipe", chained_commands=[cmd1, cmd2])
     app = cli(name="testcli", commands=[chain_cmd])
-    runner = CliRunner(app)
+    runner = cli_runner(app)
 
     result = runner.invoke(["pipe", "42", "hello"])
 

@@ -7,7 +7,7 @@ from .models.chain import chain
 from .models.group import group
 from .models.cli import cli
 from .utils.color_config import color_config
-from .testing import CliRunner, CliResult
+from .testing import cli_runner, cli_result
 
 # Rebuild models to handle forward references
 argument.model_rebuild()
@@ -26,6 +26,6 @@ __all__ = [
     "group",
     "cli",
     "color_config",
-    "CliRunner",
-    "CliResult",
+    "cli_runner",
+    "cli_result",
 ]
