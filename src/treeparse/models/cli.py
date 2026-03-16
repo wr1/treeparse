@@ -1,6 +1,6 @@
 """CLI model with methods."""
 
-from typing import List, Union, Optional, Callable, Union as TypingUnion, get_origin
+from typing import List, Union, Optional, Callable, get_origin
 import argparse
 import sys
 import json
@@ -317,12 +317,12 @@ class cli(group):
                 if param_names != provided_names:
                     missing = param_names - provided_names
                     extra = provided_names - param_names
-                    error_msg = f"Parameter name mismatch for command '[bold red]{node.name}[/bold red]': "
+                    error_msg = f"Parameter name mismatch for command '{node.name}': "
                     if missing:
-                        error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
+                        error_msg += f"Missing parameters in CLI definition: {missing}. "
                     if extra:
-                        error_msg += f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
-                    error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
+                        error_msg += f"Extra parameters in CLI definition: {extra}. "
+                    error_msg += f"Callback expects: {param_names}, CLI provides: {provided_names}"
                     raise ValueError(error_msg)
                 type_mismatches = []
                 for param, p_type in param_types.items():
@@ -333,15 +333,15 @@ class cli(group):
                     if str(p_type).startswith("typing.List") and cli_type is list:
                         continue
                     # Skip type check for Union types to allow flexibility
-                    if get_origin(p_type) is TypingUnion:
+                    if get_origin(p_type) is Union:
                         continue
                     elif cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
+                            f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"
                         )
                 if type_mismatches:
                     error_msg = (
-                        f"Parameter type mismatch for command '[bold red]{node.name}[/bold red]': "
+                        f"Parameter type mismatch for command '{node.name}': "
                         + "; ".join(type_mismatches)
                     )
                     raise ValueError(error_msg)
@@ -396,7 +396,7 @@ class cli(group):
         try:
             parser = self.build_parser()
         except ValueError as e:
-            console.print(str(e), markup=True)
+            console.print(f"[bold red]Error:[/bold red] {e}", highlight=False)
             sys.exit(1)
         # Handle special flags
         argv = sys.argv[1:]
