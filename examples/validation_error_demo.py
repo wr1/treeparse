@@ -11,7 +11,7 @@ Usage examples:
   uv run validation_error_demo bad-choice         # → invalid default error
 """
 
-from treeparse import cli, command, argument, option
+from treeparse import argument, cli, command, option
 
 
 def callback_with_missing_param(name: str, age: int):

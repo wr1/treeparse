@@ -1,6 +1,8 @@
-import pytest
 import sys
-from treeparse import cli, command, argument, option
+
+import pytest
+
+from treeparse import argument, cli, command, option
 
 
 def test_cli_help_output(capsys):

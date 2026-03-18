@@ -1,6 +1,8 @@
-import pytest
-import tempfile
 import os
+import tempfile
+
+import pytest
+
 from treeparse.utils.helpers import load_yaml_config
 
 

@@ -1,6 +1,8 @@
 import sys
+
 import pytest
-from treeparse import cli, group, command, argument, option
+
+from treeparse import argument, cli, command, group, option
 
 
 def create_demo_cli():
@@ -92,7 +94,7 @@ def create_demo_cli():
             option(
                 flags=["--user-id", "-u"],
                 dest="user_id_option",
-                help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
+                help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",  # noqa: E501
                 arg_type=int,
                 sort_key=0,
             ),

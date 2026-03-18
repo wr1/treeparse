@@ -1,6 +1,8 @@
-import pytest
 import sys
-from treeparse import cli, command, argument, chain
+
+import pytest
+
+from treeparse import argument, chain, cli, command
 
 
 def test_chain_execution():
@@ -12,12 +14,8 @@ def test_chain_execution():
     def cb2(b: str):
         calls.append(("cb2", b))
 
-    cmd1 = command(
-        name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)]
-    )
-    cmd2 = command(
-        name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)]
-    )
+    cmd1 = command(name="cmd1", callback=cb1, arguments=[argument(name="a", arg_type=int)])
+    cmd2 = command(name="cmd2", callback=cb2, arguments=[argument(name="b", arg_type=str)])
     chain_obj = chain(name="chain", chained_commands=[cmd1, cmd2])
     app = cli(name="test", commands=[chain_obj])
 

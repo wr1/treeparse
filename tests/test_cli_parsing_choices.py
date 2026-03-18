@@ -1,6 +1,8 @@
-import pytest
 import sys
-from treeparse import cli, command, argument, option
+
+import pytest
+
+from treeparse import argument, cli, command, option
 
 
 def test_choices_option(capsys):
@@ -90,9 +92,7 @@ def test_default_against_choices():
         cmd = command(
             name="test",
             callback=callback,
-            options=[
-                option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])
-            ],
+            options=[option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])],
         )
         app = cli(name="test", commands=[cmd])
         app._validate()

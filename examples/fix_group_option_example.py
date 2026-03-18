@@ -1,6 +1,6 @@
 """Example replicating the group option inheritance issue."""
 
-from treeparse import cli, command, argument, option, group
+from treeparse import argument, cli, command, group, option
 
 called = []
 

@@ -1,5 +1,6 @@
 import pytest
-from treeparse import option, cli
+
+from treeparse import cli, option
 
 
 def test_option_model():
@@ -54,9 +55,7 @@ def test_command_validation_choices_default():
         cmd = command(
             name="test",
             callback=callback,
-            options=[
-                option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])
-            ],
+            options=[option(flags=["--opt"], arg_type=int, default=5, choices=[2, 3, 4])],
         )
         app = cli(name="test", commands=[cmd])
         app._validate()

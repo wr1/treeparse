@@ -61,7 +61,7 @@ See `examples/basic_super.py` for a live example.
 
 Other pluggable features:
 
-- **Color Themes**: `theme="mononeon"` (or `monochrome`, `red_white_blue`)
+- **Color Themes**: `theme="github"` (or `monokai`, `mononeon`, `monochrome`, `red_white_blue`)
 - **YAML Configuration**: `yml_config=Path("config.yml")` to override defaults
 - **Shell Completions**: Optional `shtab` support via `[completions]` extra
 - **Testing**: `CliRunner` for clean pytest integration
@@ -121,9 +121,18 @@ Tree-structured help prunes irrelevant branches while retaining context. Folding
 ## Current Status
 
 - Implemented: Model definitions, tree/JSON help, validation, nargs, bool support, **folding**, **pluggability** (composition, themes, YAML), `CliRunner`.
-- Examples: `basic.py`, `demo.py` (complex), `list_demo.py`, `basic_super.py` (composition), `validation_error_demo.py`.
-- Tests: Extensive pytest coverage (~87%) with dedicated runner tests.
+- Examples: `basic.py`, `demo.py` (complex), `list_demo.py`, `basic_super.py` (composition), `validation_error_demo.py`, `github_theme_demo.py`, `monokai_theme_demo.py`.
+- Tests: Extensive pytest coverage (>99%) with dedicated runner tests and help-output snapshot tests.
 - Tools: Ruff, pytest-cov.
+
+## Recent Improvements (v0.2.x)
+
+- **Correctness fixes**: inherited options now included in default-vs-choices validation; `option(required=True, default=X)` is caught at construction time; callback validation uses `inspect.unwrap()` so decorated functions are inspected correctly, and async callbacks are rejected with a clear error.
+- **Enum type support**: `arg_type=MyEnum` automatically populates `choices` from enum member names and converts input strings via `MyEnum[s]`.
+- **Help renderer extracted**: The 440-line help renderer now lives in `treeparse.utils.help_renderer` as an isolated, testable class. `cli.py` is ~375 lines (down from ~950).
+- **Parser caching**: `build_parser()` and `get_max_depth()` cache their results after the first call; do not mutate a `cli` after first `run()`.
+- **YAML config scope fixed**: `yml_config` overrides now apply to options on all subgroups and commands (not only root-level options); unrecognized config keys emit `warnings.warn`.
+- **New color themes**: `github` (GitHub dark palette — purple/blue/orange/red-pink) and `monokai` (classic Sublime Text palette — green/cyan/purple/pink). See `examples/github_theme_demo.py` and `examples/monokai_theme_demo.py`.
 
 ## License
 

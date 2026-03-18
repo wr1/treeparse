@@ -1,7 +1,8 @@
 """option model."""
 
 from typing import Any, List, Optional, Union
-from pydantic import BaseModel
+
+from pydantic import BaseModel, model_validator
 
 
 class option(BaseModel):
@@ -17,6 +18,15 @@ class option(BaseModel):
     sort_key: int = 0
     required: bool = False
     inherit: bool = True
+
+    @model_validator(mode="after")
+    def check_required_default_contradiction(self):
+        if self.required and self.default is not None:
+            raise ValueError(
+                f"option {self.flags!r}: required=True is contradicted by default={self.default!r}; "
+                "argparse ignores required when a default exists"
+            )
+        return self
 
     def get_dest(self) -> str:
         """Compute the destination name for this option."""

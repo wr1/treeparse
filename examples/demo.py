@@ -1,9 +1,9 @@
-import sys
 import logging
+import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
-from treeparse import cli, group, command, argument, option
+from treeparse import argument, cli, command, group, option
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,9 +31,7 @@ def set_role(
     user_id_option: int = None,
     reason_option: str = None,
 ):
-    user_id = (
-        user_id_option if user_id_option is not None else (user_id or "unspecified")
-    )
+    user_id = user_id_option if user_id_option is not None else (user_id or "unspecified")
     reason = reason_option if reason_option is not None else reason
     logging.info(f"Setting role {role} for user ID {user_id}")
     if reason:
@@ -121,7 +119,7 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",
+            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",  # noqa: E501
             arg_type=int,
             sort_key=0,
             default=2,

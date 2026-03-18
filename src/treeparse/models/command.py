@@ -1,8 +1,10 @@
 """command model."""
 
-from typing import Callable, List, Union as TypingUnion, get_origin
 import inspect
+from typing import Callable, List, Union, get_origin
+
 from pydantic import BaseModel, computed_field
+
 from .argument import argument
 from .option import option
 
@@ -35,13 +37,12 @@ class command(BaseModel):
 
     def validate(self):
         """Validate that callback parameters match defined arguments and options in name and type."""
-        sig = inspect.signature(self.callback)
+        unwrapped = inspect.unwrap(self.callback)
+        if inspect.iscoroutinefunction(unwrapped):
+            raise ValueError(f"Callback for command '{self.name}' is async; treeparse does not support async callbacks")
+        sig = inspect.signature(unwrapped)
         param_names = set(sig.parameters.keys())
-        param_types = {
-            k: v.annotation
-            for k, v in sig.parameters.items()
-            if v.annotation != inspect.Parameter.empty
-        }
+        param_types = {k: v.annotation for k, v in sig.parameters.items() if v.annotation != inspect.Parameter.empty}
         provided = {}
         for arg in self.arguments:
             dest = arg.dest or arg.name
@@ -59,14 +60,12 @@ class command(BaseModel):
         if param_names != provided_names:
             missing = param_names - provided_names
             extra = provided_names - param_names
-            error_msg = f"Parameter name mismatch for command '[bold red]{self.name}[/bold red]': "
+            error_msg = f"Parameter name mismatch for command '{self.name}': "
             if missing:
-                error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
+                error_msg += f"Missing parameters in CLI definition: {missing}. "
             if extra:
-                error_msg += (
-                    f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
-                )
-            error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
+                error_msg += f"Extra parameters in CLI definition: {extra}. "
+            error_msg += f"Callback expects: {param_names}, CLI provides: {provided_names}"
             raise ValueError(error_msg)
         # Check types
         type_mismatches = []
@@ -78,17 +77,14 @@ class command(BaseModel):
             if str(p_type).startswith("typing.List") and cli_type is list:
                 continue
             # Skip type check for Union types to allow flexibility
-            if get_origin(p_type) is TypingUnion:
+            if get_origin(p_type) is Union:
                 continue
             if cli_type != p_type:
                 type_mismatches.append(
-                    f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
+                    f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"  # noqa: E501
                 )
         if type_mismatches:
-            error_msg = (
-                f"Parameter type mismatch for command '[bold red]{self.name}[/bold red]': "
-                + "; ".join(type_mismatches)
-            )
+            error_msg = f"Parameter type mismatch for command '{self.name}': " + "; ".join(type_mismatches)
             raise ValueError(error_msg)
         # Check defaults against choices
         for arg in self.arguments:
@@ -97,12 +93,12 @@ class command(BaseModel):
                     for d in arg.default:
                         if d not in arg.choices:
                             raise ValueError(
-                                f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                                f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"  # noqa: E501
                             )
                 else:
                     if arg.default not in arg.choices:
                         raise ValueError(
-                            f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                            f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"  # noqa: E501
                         )
         for opt in self.options:
             if opt.choices is not None and opt.default is not None:
@@ -110,10 +106,10 @@ class command(BaseModel):
                     for d in opt.default:
                         if d not in opt.choices:
                             raise ValueError(
-                                f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                                f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"  # noqa: E501
                             )
                 else:
                     if opt.default not in opt.choices:
                         raise ValueError(
-                            f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                            f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"  # noqa: E501
                         )

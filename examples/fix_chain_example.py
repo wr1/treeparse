@@ -1,6 +1,6 @@
 """Example replicating the chain execution issue."""
 
-from treeparse import cli, command, argument, chain
+from treeparse import argument, chain, cli, command
 
 calls = []
 

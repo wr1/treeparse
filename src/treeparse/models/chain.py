@@ -1,9 +1,11 @@
 """Chain model for aggregating commands."""
 
 from typing import List
-from pydantic import BaseModel, model_validator, computed_field
-from .command import command
+
+from pydantic import BaseModel, computed_field, model_validator
+
 from .argument import argument
+from .command import command
 from .option import option
 
 
@@ -35,9 +37,7 @@ class chain(BaseModel):
             for arg in cmd.arguments:
                 dest = arg.dest or arg.name
                 if dest in seen:
-                    raise ValueError(
-                        f"Conflicting argument dest '{dest}' in chain '{self.name}'"
-                    )
+                    raise ValueError(f"Conflicting argument dest '{dest}' in chain '{self.name}'")
                 seen.add(dest)
                 all_args.append(arg)
         return all_args
@@ -51,9 +51,7 @@ class chain(BaseModel):
             for opt in cmd.options:
                 dest = opt.get_dest()
                 if dest in seen:
-                    raise ValueError(
-                        f"Conflicting option dest '{dest}' in chain '{self.name}'"
-                    )
+                    raise ValueError(f"Conflicting option dest '{dest}' in chain '{self.name}'")
                 seen.add(dest)
                 all_opts.append(opt)
         return all_opts

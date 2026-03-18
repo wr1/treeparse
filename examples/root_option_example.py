@@ -1,6 +1,6 @@
 """Simple example demonstrating root-level flag option used in commands."""
 
-from treeparse import cli, command, option, argument
+from treeparse import argument, cli, command, option
 
 
 def greet(name: str, verbose: bool):

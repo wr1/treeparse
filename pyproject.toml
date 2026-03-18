@@ -13,7 +13,7 @@ description = "Intuitive CLI framework using argparse, rich, and pydantic"
 name = "treeparse"
 readme = "README.md"
 requires-python = ">=3.8"
-version = "0.1.8"
+version = "0.2.0"
 
 [project.scripts]
 basic = "examples.basic:main"
@@ -38,5 +38,11 @@ completions = ["shtab>=1.7.1"]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=4.0",
-  "ruff>=0.0.260,<0.0.261",
+  "ruff>=0.9.0",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]

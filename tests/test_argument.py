@@ -1,5 +1,7 @@
-import pytest
 from typing import List
+
+import pytest
+
 from treeparse import argument
 
 
@@ -58,9 +60,7 @@ def test_command_validation_choices_default():
         cmd = command(
             name="test",
             callback=callback,
-            arguments=[
-                argument(name="arg1", arg_type=int, default=4, choices=[1, 2, 3])
-            ],
+            arguments=[argument(name="arg1", arg_type=int, default=4, choices=[1, 2, 3])],
         )
         cmd.validate()
     assert "Default value 4 not in choices [1, 2, 3]" in str(exc.value)
@@ -76,11 +76,7 @@ def test_command_validation_list_choices_default():
     cmd = command(
         name="test",
         callback=callback,
-        arguments=[
-            argument(
-                name="args", nargs="*", arg_type=int, default=[1, 2], choices=[1, 2, 3]
-            )
-        ],
+        arguments=[argument(name="args", nargs="*", arg_type=int, default=[1, 2], choices=[1, 2, 3])],
     )
     cmd.validate()  # Should not raise
 

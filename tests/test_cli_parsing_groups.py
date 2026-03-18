@@ -1,6 +1,8 @@
-import pytest
 import sys
-from treeparse import cli, command, argument, option, group
+
+import pytest
+
+from treeparse import argument, cli, command, group, option
 
 
 def test_group_argument_propagation():
@@ -11,13 +13,9 @@ def test_group_argument_propagation():
         assert id == 123
         assert name == "test"
 
-    add_cmd = command(
-        name="add", callback=callback, arguments=[argument(name="name", arg_type=str)]
-    )
+    add_cmd = command(name="add", callback=callback, arguments=[argument(name="name", arg_type=str)])
 
-    user_group = group(
-        name="user", arguments=[argument(name="id", arg_type=int)], commands=[add_cmd]
-    )
+    user_group = group(name="user", arguments=[argument(name="id", arg_type=int)], commands=[add_cmd])
 
     app = cli(name="test", subgroups=[user_group])
 
@@ -30,13 +28,9 @@ def test_group_argument_in_help(capsys):
     def callback(id: int, name: str):
         pass
 
-    cmd = command(
-        name="add", callback=callback, arguments=[argument(name="name", arg_type=str)]
-    )
+    cmd = command(name="add", callback=callback, arguments=[argument(name="name", arg_type=str)])
 
-    g = group(
-        name="user", arguments=[argument(name="id", arg_type=int)], commands=[cmd]
-    )
+    g = group(name="user", arguments=[argument(name="id", arg_type=int)], commands=[cmd])
 
     app = cli(name="test", subgroups=[g], show_types=True)
 

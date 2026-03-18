@@ -1,23 +1,26 @@
 """CLI model with methods."""
 
-from typing import List, Union, Optional, Callable, Union as TypingUnion, get_origin
 import argparse
-import sys
-import json
 import inspect
+import json
+import sys
+import warnings
+from enum import EnumMeta
 from pathlib import Path
-from pydantic import model_validator, computed_field
+from typing import Callable, List, Optional, Union, get_origin
+
+from pydantic import PrivateAttr, computed_field, model_validator
 from rich.console import Console
-from rich.tree import Tree
-from rich.text import Text
 from rich.syntax import Syntax
-from .group import group
-from .command import command
-from .chain import chain
-from .option import option
-from ..utils.color_config import color_config, ColorTheme
+
+from ..utils.color_config import ColorTheme, color_config
+from ..utils.help_renderer import help_renderer
 from ..utils.helpers import load_yaml_config
 from .argument import argument
+from .chain import chain
+from .command import command
+from .group import group
+from .option import option
 
 
 def str2bool(v):
@@ -35,7 +38,7 @@ def str2bool(v):
 def chain_runner(chain_obj: chain, **kwargs):
     """Runner function for chain commands."""
     for sub_cmd in chain_obj.chained_commands:
-        sig = inspect.signature(sub_cmd.callback)
+        sig = inspect.signature(inspect.unwrap(sub_cmd.callback))
         sub_kwargs = {k: kwargs.get(k) for k in sig.parameters if k in kwargs}
         sub_cmd.callback(**sub_kwargs)
 
@@ -50,7 +53,7 @@ class RichArgumentParser(argparse.ArgumentParser):
             if len(parts) > 1:
                 invalid = parts[1].split(" (choose from")[0].strip("'")
                 console.print(
-                    f"[bold red]Error:[/bold red] {parts[0]}invalid choice: [yellow]'{invalid}'[/yellow] (choose from{parts[1].split('(choose from')[1]}"
+                    f"[bold red]Error:[/bold red] {parts[0]}invalid choice: [yellow]'{invalid}'[/yellow] (choose from{parts[1].split('(choose from')[1]}"  # noqa: E501
                 )
             else:
                 console.print(f"[bold red]Error:[/bold red] {message}")
@@ -70,6 +73,9 @@ class cli(group):
     line_connect: bool = False
     yml_config: Path = None
     callback: Optional[Callable[..., None]] = None
+
+    _parser: Optional[argparse.ArgumentParser] = PrivateAttr(default=None)
+    _max_depth: Optional[int] = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def set_colors_from_theme(self):
@@ -92,23 +98,22 @@ class cli(group):
         return self.options
 
     def get_max_depth(self) -> int:
-        """Compute max depth of CLI tree."""
+        """Compute max depth of CLI tree (cached after first call)."""
+        if self._max_depth is not None:
+            return self._max_depth
 
         def recurse(node: Union["cli", group, command, chain]) -> int:
             if isinstance(node, (command, chain)):
                 return 0
-            children = (
-                node.subgroups + node.commands if hasattr(node, "subgroups") else []
-            )
+            children = node.subgroups + node.commands if hasattr(node, "subgroups") else []
             if not children:
                 return 0
             return 1 + max(recurse(c) for c in children)
 
-        return recurse(self)
+        self._max_depth = recurse(self)
+        return self._max_depth
 
-    def _get_node_from_path(
-        self, path: List[str]
-    ) -> Union[group, command, chain, "cli"]:
+    def _get_node_from_path(self, path: List[str]) -> Union[group, command, chain, "cli"]:
         """Get node from path."""
         current: Union["cli", group, command, chain] = self
         for p in path:
@@ -128,25 +133,25 @@ class cli(group):
             d = {"name": node.name, "help": node.help}
             if hasattr(node, "sort_key"):
                 d["sort_key"] = node.sort_key
+            node_opts = node.options if hasattr(node, "options") else []
             d["options"] = [
                 {
                     **opt.model_dump(exclude={"arg_type"}),
                     "arg_type": opt.arg_type.__name__,
                     "choices": opt.choices,
                 }
-                for opt in sorted(node.options, key=lambda x: x.sort_key)
+                for opt in sorted(node_opts, key=lambda x: x.sort_key)
             ]
+            node_args = node.arguments if hasattr(node, "arguments") else []
             d["arguments"] = [
                 {
                     **arg.model_dump(exclude={"arg_type"}),
                     "arg_type": arg.arg_type.__name__,
                     "choices": arg.choices,
                 }
-                for arg in sorted(node.arguments, key=lambda x: x.sort_key)
+                for arg in sorted(node_args, key=lambda x: x.sort_key)
             ]
-            if isinstance(node, command) or (
-                isinstance(node, cli) and node.is_flat and node.callback is not None
-            ):
+            if isinstance(node, command) or (isinstance(node, cli) and node.is_flat and node.callback is not None):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
             elif isinstance(node, chain):
@@ -158,57 +163,75 @@ class cli(group):
                 else:
                     d["type"] = "group"
             if hasattr(node, "subgroups"):
-                d["subgroups"] = [
-                    recurse(g, is_root=False)
-                    for g in sorted(node.subgroups, key=lambda x: x.sort_key)
-                ]
+                d["subgroups"] = [recurse(g, is_root=False) for g in sorted(node.subgroups, key=lambda x: x.sort_key)]
             if hasattr(node, "commands"):
-                d["commands"] = [
-                    recurse(c, is_root=False)
-                    for c in sorted(node.commands, key=lambda x: x.sort_key)
-                ]
+                d["commands"] = [recurse(c, is_root=False) for c in sorted(node.commands, key=lambda x: x.sort_key)]
             return d
 
         return recurse(self, is_root=True)
 
     def build_parser(self) -> argparse.ArgumentParser:
-        """Build argparse parser from CLI structure."""
+        """Build argparse parser from CLI structure (cached after first call).
+
+        Do not mutate the cli after the first call to build_parser() or run().
+        """
+        if self._parser is not None:
+            return self._parser
         self._validate()
         max_depth = self.get_max_depth()
-        parser = RichArgumentParser(
-            prog=self.display_name, description=self.help, add_help=False
-        )
+        parser = RichArgumentParser(prog=self.display_name, description=self.help, add_help=False)
         self._add_args_and_opts_to_parser(parser, self.arguments, self.options)
         if self.is_flat:
             if self.callback is not None:
                 parser.set_defaults(func=self.callback)
         else:
-            self._build_subparser(
-                parser, self, 1, max_depth, self.arguments, self.options
-            )
+            self._build_subparser(parser, self, 1, max_depth, self.arguments, self.options)
+        self._parser = parser
         return parser
 
-    def _add_args_and_opts_to_parser(
-        self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]
-    ):
+    @staticmethod
+    def _resolve_arg_type(arg_type):
+        """Resolve arg_type to an argparse-compatible callable.
+
+        Handles bool (str2bool), Enum subclasses (name lookup + auto-choices),
+        and passes everything else through unchanged.
+        Returns (type_callable, choices_or_None).
+        """
+        if arg_type is bool:
+            return str2bool, None
+        if isinstance(arg_type, EnumMeta):
+            # argparse applies the type callable first, then checks choices.
+            # choices must be enum members so that `member in choices` passes.
+            # The converter raises ValueError (caught by argparse) on bad input.
+            def _enum_conv(s, t=arg_type):
+                try:
+                    return t[s]
+                except KeyError:
+                    raise ValueError(s)
+
+            return _enum_conv, list(arg_type)
+        return arg_type, None
+
+    def _add_args_and_opts_to_parser(self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]):
         for opt in opts:
             dest = opt.get_dest()
             kwargs = {"dest": dest, "help": opt.help}
             if opt.default is not None:
                 kwargs["default"] = opt.default
-            kwargs["type"] = opt.arg_type if opt.arg_type is not bool else str2bool
+            type_callable, enum_choices = self._resolve_arg_type(opt.arg_type)
+            kwargs["type"] = type_callable
             if opt.nargs is not None:
                 kwargs["nargs"] = opt.nargs
             if opt.choices is not None:
                 kwargs["choices"] = opt.choices
+            elif enum_choices is not None:
+                kwargs["choices"] = enum_choices
             if opt.required:
                 kwargs["required"] = True
             parser.add_argument(*opt.flags, **kwargs)
         for arg in args:
-            kwargs = {
-                "help": arg.help,
-                "type": arg.arg_type if arg.arg_type is not bool else str2bool,
-            }
+            type_callable, enum_choices = self._resolve_arg_type(arg.arg_type)
+            kwargs = {"help": arg.help, "type": type_callable}
             if arg.dest is not None:
                 kwargs["dest"] = arg.dest
             if arg.nargs is not None:
@@ -219,6 +242,8 @@ class cli(group):
                 kwargs["default"] = None
             if arg.choices is not None:
                 kwargs["choices"] = arg.choices
+            elif enum_choices is not None:
+                kwargs["choices"] = enum_choices
             parser.add_argument(arg.name, **kwargs)
 
     def _build_subparser(
@@ -241,9 +266,7 @@ class cli(group):
         if children:
             subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
             for child in children:
-                child_parser = subparsers.add_parser(
-                    child.display_name, help=child.help, add_help=False
-                )
+                child_parser = subparsers.add_parser(child.display_name, help=child.help, add_help=False)
                 if isinstance(child, group):
                     self._add_args_and_opts_to_parser(
                         child_parser,
@@ -306,23 +329,26 @@ class cli(group):
                     if opt.nargs in ["*", "+"]:
                         opt_type = List[opt_type]
                     provided[dest] = opt_type
-                sig = inspect.signature(node.callback)
+                unwrapped_cb = inspect.unwrap(node.callback)
+                if inspect.iscoroutinefunction(unwrapped_cb):
+                    raise ValueError(
+                        f"Callback for command '{node.name}' is async; treeparse does not support async callbacks"
+                    )
+                sig = inspect.signature(unwrapped_cb)
                 param_names = set(sig.parameters.keys())
                 param_types = {
-                    k: v.annotation
-                    for k, v in sig.parameters.items()
-                    if v.annotation != inspect.Parameter.empty
+                    k: v.annotation for k, v in sig.parameters.items() if v.annotation != inspect.Parameter.empty
                 }
                 provided_names = set(provided.keys())
                 if param_names != provided_names:
                     missing = param_names - provided_names
                     extra = provided_names - param_names
-                    error_msg = f"Parameter name mismatch for command '[bold red]{node.name}[/bold red]': "
+                    error_msg = f"Parameter name mismatch for command '{node.name}': "
                     if missing:
-                        error_msg += f"Missing parameters in CLI definition: [yellow]{missing}[/yellow]. "
+                        error_msg += f"Missing parameters in CLI definition: {missing}. "
                     if extra:
-                        error_msg += f"Extra parameters in CLI definition: [yellow]{extra}[/yellow]. "
-                    error_msg += f"Callback expects: [cyan]{param_names}[/cyan], CLI provides: [cyan]{provided_names}[/cyan]"
+                        error_msg += f"Extra parameters in CLI definition: {extra}. "
+                    error_msg += f"Callback expects: {param_names}, CLI provides: {provided_names}"
                     raise ValueError(error_msg)
                 type_mismatches = []
                 for param, p_type in param_types.items():
@@ -333,17 +359,14 @@ class cli(group):
                     if str(p_type).startswith("typing.List") and cli_type is list:
                         continue
                     # Skip type check for Union types to allow flexibility
-                    if get_origin(p_type) is TypingUnion:
+                    if get_origin(p_type) is Union:
                         continue
                     elif cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback [green]{p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)}[/green] vs CLI [green]{cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}[/green]"
+                            f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"  # noqa: E501
                         )
                 if type_mismatches:
-                    error_msg = (
-                        f"Parameter type mismatch for command '[bold red]{node.name}[/bold red]': "
-                        + "; ".join(type_mismatches)
-                    )
+                    error_msg = f"Parameter type mismatch for command '{node.name}': " + "; ".join(type_mismatches)
                     raise ValueError(error_msg)
                 # Check defaults against choices (only local)
                 for arg in node.arguments:
@@ -352,25 +375,25 @@ class cli(group):
                             for d in arg.default:
                                 if d not in arg.choices:
                                     raise ValueError(
-                                        f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                        f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"  # noqa: E501
                                     )
                         else:
                             if arg.default not in arg.choices:
                                 raise ValueError(
-                                    f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                    f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"  # noqa: E501
                                 )
-                for opt in node.options:  # only local options for this check
+                for opt in effective_opts:
                     if opt.choices is not None and opt.default is not None:
                         if opt.nargs in ["*", "+"] and isinstance(opt.default, list):
                             for d in opt.default:
                                 if d not in opt.choices:
                                     raise ValueError(
-                                        f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                        f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"  # noqa: E501
                                     )
                         else:
                             if opt.default not in opt.choices:
                                 raise ValueError(
-                                    f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                    f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"  # noqa: E501
                                 )
             elif isinstance(node, chain):
                 node.validate()
@@ -390,13 +413,51 @@ class cli(group):
 
         recurse(self, [], [])
 
+    def _apply_yaml_config(self, config: dict):
+        """Walk the full CLI tree and apply config overrides to all options by dest.
+
+        Emits warnings for unrecognized config keys.
+        """
+
+        seen_keys = set()
+
+        def walk(node):
+            if hasattr(node, "options"):
+                for opt in node.options:
+                    dest = opt.get_dest()
+                    if dest in config:
+                        opt.default = config[dest]
+                        seen_keys.add(dest)
+            if hasattr(node, "subgroups"):
+                for g in node.subgroups:
+                    walk(g)
+            if hasattr(node, "commands"):
+                for c in node.commands:
+                    walk(c)
+
+        walk(self)
+        for key in config:
+            if key not in seen_keys:
+                warnings.warn(
+                    f"treeparse YAML config: unrecognized key '{key}'",
+                    UserWarning,
+                    stacklevel=4,
+                )
+
     def run(self):
         """Run the CLI."""
         console = Console()
+        # Load YAML config before building parser so defaults take effect
+        if self.yml_config:
+            config = load_yaml_config(str(self.yml_config))
+            self._apply_yaml_config(config)
+            # Invalidate parser cache so new defaults are picked up
+            self._parser = None
+            self._max_depth = None
         try:
             parser = self.build_parser()
         except ValueError as e:
-            console.print(str(e), markup=True)
+            console.print(f"[bold red]Error:[/bold red] {e}", highlight=False)
             sys.exit(1)
         # Handle special flags
         argv = sys.argv[1:]
@@ -419,13 +480,6 @@ class cli(group):
                         path.append(a)
                 self.print_help(path)
             sys.exit(0)
-        # Load YAML config if provided
-        if self.yml_config:
-            config = load_yaml_config(str(self.yml_config))
-            # Simple override: set defaults from config (extend as needed)
-            for opt in self.options:
-                if opt.get_dest() in config:
-                    opt.default = config[opt.get_dest()]
         # Normal parsing
         try:
             args = parser.parse_args()
@@ -444,11 +498,7 @@ class cli(group):
         missing = []
         for arg in current.effective_arguments:
             dest = arg.dest or arg.name
-            if (
-                arg.nargs is None
-                and arg.default is None
-                and getattr(args, dest, None) is None
-            ):
+            if arg.nargs is None and arg.default is None and getattr(args, dest, None) is None:
                 missing.append(arg.name)
         if missing:
             parser.error("the following arguments are required: " + ", ".join(missing))
@@ -498,9 +548,7 @@ class cli(group):
         arg_dict = {
             k: v
             for k, v in vars(args).items()
-            if not k.startswith("command_")
-            and k not in ("func", "chain_obj")
-            and k in provided_names
+            if not k.startswith("command_") and k not in ("func", "chain_obj") and k in provided_names
         }
         if hasattr(args, "chain_obj"):
             args.func(args.chain_obj, **arg_dict)
@@ -509,444 +557,4 @@ class cli(group):
 
     def print_help(self, path: List[str]):
         """Print custom tree help."""
-        # Find the deepest valid command path
-        current = self
-        consumed = 0
-        for i, p in enumerate(path):
-            if not hasattr(current, "subgroups"):
-                if isinstance(current, command) and consumed < len(path):
-                    break
-                raise ValueError(f"Path not found: {path}")
-            children = current.subgroups + current.commands
-            ch = next((c for c in children if c.display_name == p), None)
-            if ch is None:
-                raise ValueError(f"Path not found: {path}")
-            current = ch
-            consumed = i + 1
-        effective_path = path[:consumed]
-        # Build usage string
-        path_str = " ".join(effective_path)
-        if path_str:
-            path_str += " "
-        if consumed < len(path):
-            path_str += "[ARGS...] "
-        usage = f"[bold]Usage: {self.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h)"
-        console = Console(width=self.max_width)
-        console.print(usage)
-        console.print(
-            f"[{self.colors.requested_help}]Description: {current.help}[/{self.colors.requested_help}]"
-        )
-        max_start = 0
-
-        def collect_recurse(
-            node: Union["cli", group, command, chain],
-            on_path: bool,
-            remaining_path: List[str],
-            depth: int,
-            root_cli: "cli",
-        ):
-            nonlocal max_start
-            name_len = len(self._get_name_part(node, root_cli))
-            prefix_len = depth * 4
-            max_start = max(max_start, prefix_len + name_len)
-            opts = node.options if hasattr(node, "options") else node.effective_options
-            opts_sorted = sorted(opts, key=lambda x: x.sort_key)
-            for opt in opts_sorted:
-                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                opt_name = ", ".join(flags)
-                opt_len = len(opt_name)
-                if root_cli.show_types:
-                    type_name = opt.arg_type.__name__
-                    opt_len += len(f": {type_name}")
-                if opt.choices is not None:
-                    choices_str = f" ({'|'.join(map(str, opt.choices))})"
-                    opt_len += len(choices_str)
-                opt_prefix = (depth + 1) * 4
-                max_start = max(max_start, opt_prefix + opt_len)
-            if isinstance(node, (command, chain)):
-                return
-            children = sorted(
-                (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
-                key=lambda x: x.sort_key,
-            )
-            if on_path and remaining_path:
-                next_name = remaining_path[0]
-                for child in children:
-                    if child.display_name == next_name:
-                        collect_recurse(
-                            child, True, remaining_path[1:], depth + 1, root_cli
-                        )
-                        break
-            else:
-                for child in children:
-                    if isinstance(child, group) and child.fold:
-                        folded_name = f"{child.display_name} [...]"
-                        name_len = len(folded_name)
-                        prefix_len = (depth + 1) * 4
-                        max_start = max(max_start, prefix_len + name_len)
-                    else:
-                        collect_recurse(child, False, [], depth + 1, root_cli)
-
-        collect_recurse(self, True, effective_path, 0, self)
-        selected_depth = len(effective_path)
-        root_label = self._get_root_label(max_start, 0, True, self)
-        tree = Tree(root_label, guide_style=self.colors.guide)
-        self._add_children(
-            tree, self, True, effective_path, max_start, 0, selected_depth, self
-        )
-        console.print(tree)
-
-    def _get_name_part(
-        self, node: Union[group, command, chain], root_cli: "cli"
-    ) -> str:
-        args_parts = []
-        args_list = (
-            node.arguments if hasattr(node, "arguments") else node.effective_arguments
-        )
-        for arg in sorted(args_list, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
-        args_str = " ".join(args_parts)
-        return f"{node.display_name} {args_str}".rstrip()
-
-    def _wrap_help(self, help: str, width: int) -> List[str]:
-        if width <= 0:
-            width = 20
-        lines = []
-        current = []
-        current_len = 0
-        words = help.split()
-        for word in words:
-            word_len = len(word)
-            if current and current_len + 1 + word_len > width:
-                lines.append(" ".join(current))
-                current = [word]
-                current_len = word_len
-            else:
-                if current:
-                    current_len += 1
-                current.append(word)
-                current_len += word_len
-        if current:
-            lines.append(" ".join(current))
-        return lines
-
-    def _get_root_label(
-        self, max_start: int, depth: int, is_ancestor: bool, root_cli: "cli"
-    ) -> Text:
-        style = "dim " + root_cli.colors.app if is_ancestor else root_cli.colors.app
-        help_style = (
-            "dim " + root_cli.colors.normal_help
-            if is_ancestor
-            else root_cli.colors.normal_help
-        )
-        label = Text()
-        label.append(self.display_name, style=style)
-        args_parts = []
-        for arg in sorted(self.arguments, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
-        args_str = " ".join(args_parts)
-        if args_str:
-            label.append(" ")
-            label.append(
-                args_str,
-                style="dim " + root_cli.colors.argument
-                if is_ancestor
-                else root_cli.colors.argument,
-            )
-        name_len = label.cell_len
-        prefix_len = depth * 4
-        padding = max_start - prefix_len - name_len
-        if self.help:
-            help_lines = self._wrap_help(
-                self.help, root_cli.max_width - (max_start + 1)
-            )
-            if root_cli.line_connect:
-                label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-            else:
-                label.append(" " * padding)
-                label.append(" ")
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-        else:
-            label.append(" " * padding)
-        return label
-
-    def _get_label(
-        self,
-        node: Union[group, command, chain],
-        max_start: int,
-        on_path: bool,
-        depth: int,
-        is_ancestor: bool,
-        root_cli: "cli",
-    ) -> Text:
-        base_help_style = (
-            root_cli.colors.requested_help if on_path else root_cli.colors.normal_help
-        )
-        help_style = "dim " + base_help_style if is_ancestor else base_help_style
-        name_style = (
-            "dim " + root_cli.colors.group
-            if is_ancestor and isinstance(node, group)
-            else root_cli.colors.group
-            if isinstance(node, group)
-            else "dim " + root_cli.colors.command
-            if is_ancestor
-            else root_cli.colors.command
-        )
-        arg_style = (
-            "dim " + root_cli.colors.argument
-            if is_ancestor
-            else root_cli.colors.argument
-        )
-        label = Text()
-        label.append(node.display_name, style=name_style)
-        args_list = (
-            node.arguments if isinstance(node, group) else node.effective_arguments
-        )
-        args_parts = []
-        for arg in sorted(args_list, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
-        args_str = " ".join(args_parts)
-        if args_str:
-            label.append(" ")
-            label.append(args_str, style=arg_style)
-        name_len = label.cell_len
-        prefix_len = depth * 4
-        padding = max_start - prefix_len - name_len
-        if node.help:
-            help_lines = self._wrap_help(
-                node.help, root_cli.max_width - (max_start + 1)
-            )
-            if root_cli.line_connect:
-                label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-            else:
-                label.append(" " * padding)
-                label.append(" ")
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-        else:
-            label.append(" " * padding)
-        return label
-
-    def _get_folded_label(
-        self,
-        node: group,
-        max_start: int,
-        depth: int,
-        is_ancestor: bool,
-        root_cli: "cli",
-    ) -> Text:
-        name_style = (
-            "dim " + root_cli.colors.group if is_ancestor else root_cli.colors.group
-        )
-        help_style = (
-            "dim " + root_cli.colors.normal_help
-            if is_ancestor
-            else root_cli.colors.normal_help
-        )
-        label = Text()
-        label.append(f"{node.display_name} [...]", style=name_style)
-        name_len = label.cell_len
-        prefix_len = depth * 4
-        padding = max_start - prefix_len - name_len
-        if node.help:
-            help_lines = self._wrap_help(
-                node.help, root_cli.max_width - (max_start + 1)
-            )
-            if root_cli.line_connect:
-                label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-            else:
-                label.append(" " * padding)
-                label.append(" ")
-                label.append(help_lines[0], style=help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=help_style)
-        else:
-            label.append(" " * padding)
-        return label
-
-    def _get_option_label(
-        self,
-        opt: option,
-        max_start: int,
-        depth: int,
-        is_ancestor: bool,
-        root_cli: "cli",
-    ) -> Text:
-        option_style = (
-            "dim " + root_cli.colors.option if is_ancestor else root_cli.colors.option
-        )
-        option_help_style = (
-            "dim " + root_cli.colors.option_help
-            if is_ancestor
-            else root_cli.colors.option_help
-        )
-        default_style = "bold dim white"
-        label = Text()
-        flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-        flags_str = ", ".join(flags)
-        label.append(flags_str, style=option_style)
-        type_part = ""
-        if root_cli.show_types:
-            type_name = opt.arg_type.__name__
-            type_part = f": {type_name}"
-        choices_part = ""
-        if opt.choices is not None:
-            choices_part = f" ({'|'.join(map(str, opt.choices))})"
-        label.append(type_part + choices_part, style=root_cli.colors.type_color)
-        name_len = label.cell_len
-        prefix_len = depth * 4
-        padding = max_start - prefix_len - name_len
-        if opt.help:
-            help_lines = self._wrap_help(opt.help, root_cli.max_width - (max_start + 1))
-            if root_cli.line_connect:
-                label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
-                label.append(help_lines[0], style=option_help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=option_help_style)
-            else:
-                label.append(" " * padding)
-                label.append(" ")
-                label.append(help_lines[0], style=option_help_style)
-                for hl in help_lines[1:]:
-                    label.append("\n")
-                    label.append(" " * (name_len + padding + 1))
-                    label.append(hl, style=option_help_style)
-        else:
-            label.append(" " * padding)
-        if root_cli.show_defaults and opt.default is not None:
-            default_str = f" (default: {opt.default})"
-            if opt.help:
-                label.append(
-                    Text.from_markup(
-                        f"[{default_style}]{default_str}[/{default_style}]"
-                    )
-                )
-            else:
-                label.append(" ")
-                label.append(
-                    Text.from_markup(
-                        f"[{default_style}]{default_str}[/{default_style}]"
-                    )
-                )
-        return label
-
-    def _add_children(
-        self,
-        current_tree: Tree,
-        node: Union["cli", group, command, chain],
-        on_path: bool,
-        remaining_path: List[str],
-        max_start: int,
-        depth: int,
-        selected_depth: int,
-        root_cli: "cli",
-    ):
-        is_ancestor = depth < selected_depth
-        opts = node.options if hasattr(node, "options") else node.effective_options
-        opts_sorted = sorted(opts, key=lambda x: x.sort_key)
-        for opt in opts_sorted:
-            opt_label = self._get_option_label(
-                opt, max_start, depth + 1, is_ancestor, root_cli
-            )
-            current_tree.add(opt_label)
-        if isinstance(node, (command, chain)):
-            return
-        children = sorted(
-            (node.subgroups + node.commands) if hasattr(node, "subgroups") else [],
-            key=lambda x: x.sort_key,
-        )
-        if on_path and remaining_path:
-            next_name = remaining_path[0]
-            for child in children:
-                if child.display_name == next_name:
-                    child_is_ancestor = (depth + 1) < selected_depth
-                    child_label = self._get_label(
-                        child, max_start, True, depth + 1, child_is_ancestor, root_cli
-                    )
-                    child_tree = current_tree.add(child_label)
-                    self._add_children(
-                        child_tree,
-                        child,
-                        True,
-                        remaining_path[1:],
-                        max_start,
-                        depth + 1,
-                        selected_depth,
-                        root_cli,
-                    )
-                    break
-        else:
-            for child in children:
-                if isinstance(child, group) and child.fold:
-                    folded_label = self._get_folded_label(
-                        child, max_start, depth + 1, False, root_cli
-                    )
-                    current_tree.add(folded_label)
-                else:
-                    child_label = self._get_label(
-                        child, max_start, False, depth + 1, False, root_cli
-                    )
-                    child_tree = current_tree.add(child_label)
-                    self._add_children(
-                        child_tree,
-                        child,
-                        False,
-                        [],
-                        max_start,
-                        depth + 1,
-                        selected_depth,
-                        root_cli,
-                    )
+        help_renderer(self).render(path)

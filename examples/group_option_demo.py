@@ -1,4 +1,4 @@
-from treeparse import cli, group, command, option, argument
+from treeparse import argument, cli, command, group, option
 
 
 def greet(name: str, verbose: bool):
@@ -28,9 +28,7 @@ user_group = group(
     ],
 )
 
-app = cli(
-    name="group_option_demo.py", help="Demo of group options", subgroups=[user_group]
-)
+app = cli(name="group_option_demo.py", help="Demo of group options", subgroups=[user_group])
 
 
 def main():
