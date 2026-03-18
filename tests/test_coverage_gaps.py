@@ -605,7 +605,7 @@ def test_help_renderer_root_label_with_args(capsys):
     with pytest.raises(SystemExit):
         app.run()
     out = capsys.readouterr().out
-    assert "[NAME]" in out
+    assert "NAME" in out
 
 
 # ---------------------------------------------------------------------------

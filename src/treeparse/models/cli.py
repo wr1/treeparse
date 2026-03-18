@@ -68,8 +68,8 @@ class cli(group):
     max_width: int = 120
     theme: ColorTheme = ColorTheme.DEFAULT
     colors: color_config = color_config()
-    show_types: bool = False
-    show_defaults: bool = False
+    show_types: bool = True
+    show_defaults: bool = True
     line_connect: bool = False
     yml_config: Path = None
     callback: Optional[Callable[..., None]] = None
