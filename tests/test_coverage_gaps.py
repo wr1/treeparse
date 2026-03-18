@@ -564,10 +564,12 @@ def test_cli_runner_invoke_none_args():
 # ---------------------------------------------------------------------------
 
 
-def test_help_renderer_path_not_found():
+def test_help_renderer_path_not_found(capsys):
+    # Unknown path token no longer raises — it silently falls back to root help
     app = cli(name="test", help="Test")
-    with pytest.raises(ValueError, match="Path not found"):
-        app.print_help(["nonexistent"])
+    app.print_help(["nonexistent"])
+    captured = capsys.readouterr()
+    assert "test" in captured.out
 
 
 # ---------------------------------------------------------------------------

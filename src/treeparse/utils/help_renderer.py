@@ -29,7 +29,7 @@ class help_renderer:
             children = current.subgroups + current.commands
             ch = next((c for c in children if c.display_name == p), None)
             if ch is None:
-                raise ValueError(f"Path not found: {path}")
+                break
             current = ch
             consumed = i + 1
         effective_path = path[:consumed]
