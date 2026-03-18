@@ -1,11 +1,13 @@
 """group model."""
 
 from typing import List, Union
+
 from pydantic import BaseModel
-from .command import command
-from .chain import chain
-from .option import option
+
 from .argument import argument
+from .chain import chain
+from .command import command
+from .option import option
 
 
 class group(BaseModel):

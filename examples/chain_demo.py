@@ -1,4 +1,4 @@
-from treeparse import cli, command, chain, argument
+from treeparse import argument, chain, cli, command
 
 called = []
 

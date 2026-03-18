@@ -5,12 +5,14 @@ Run with `pytest --snapshot-update` (or delete the expected strings) to regenera
 All comparisons use ANSI-stripped plain text via non-TTY stdout capture.
 """
 
-import sys
-import re
 import contextlib
+import re
+import sys
 from io import StringIO
+
 import pytest
-from treeparse import cli, command, group, argument, option
+
+from treeparse import argument, cli, command, group, option
 from treeparse.models.chain import chain
 
 
@@ -32,6 +34,7 @@ def run_help(app: cli, path: list = None) -> str:
 
 
 # --- fixtures ---
+
 
 @pytest.fixture
 def flat_app():
@@ -127,12 +130,8 @@ def chain_app():
     def step2(y: str):
         pass
 
-    cmd1 = command(
-        name="step1", callback=step1, arguments=[argument(name="x", arg_type=int)]
-    )
-    cmd2 = command(
-        name="step2", callback=step2, arguments=[argument(name="y", arg_type=str)]
-    )
+    cmd1 = command(name="step1", callback=step1, arguments=[argument(name="x", arg_type=int)])
+    cmd2 = command(name="step2", callback=step2, arguments=[argument(name="y", arg_type=str)])
     ch = chain(name="pipe", help="Pipeline", chained_commands=[cmd1, cmd2])
     app = cli(name="myapp", help="Pipeline CLI", max_width=80)
     app.commands.append(ch)
@@ -154,6 +153,7 @@ def nested_app():
 
 
 # --- snapshot tests ---
+
 
 def test_flat_cli_help(flat_app):
     expected = (

@@ -1,8 +1,10 @@
 """command model."""
 
-from typing import Callable, List, Union, get_origin
 import inspect
+from typing import Callable, List, Union, get_origin
+
 from pydantic import BaseModel, computed_field
+
 from .argument import argument
 from .option import option
 
@@ -37,16 +39,10 @@ class command(BaseModel):
         """Validate that callback parameters match defined arguments and options in name and type."""
         unwrapped = inspect.unwrap(self.callback)
         if inspect.iscoroutinefunction(unwrapped):
-            raise ValueError(
-                f"Callback for command '{self.name}' is async; treeparse does not support async callbacks"
-            )
+            raise ValueError(f"Callback for command '{self.name}' is async; treeparse does not support async callbacks")
         sig = inspect.signature(unwrapped)
         param_names = set(sig.parameters.keys())
-        param_types = {
-            k: v.annotation
-            for k, v in sig.parameters.items()
-            if v.annotation != inspect.Parameter.empty
-        }
+        param_types = {k: v.annotation for k, v in sig.parameters.items() if v.annotation != inspect.Parameter.empty}
         provided = {}
         for arg in self.arguments:
             dest = arg.dest or arg.name
@@ -85,13 +81,10 @@ class command(BaseModel):
                 continue
             if cli_type != p_type:
                 type_mismatches.append(
-                    f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"
+                    f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"  # noqa: E501
                 )
         if type_mismatches:
-            error_msg = (
-                f"Parameter type mismatch for command '{self.name}': "
-                + "; ".join(type_mismatches)
-            )
+            error_msg = f"Parameter type mismatch for command '{self.name}': " + "; ".join(type_mismatches)
             raise ValueError(error_msg)
         # Check defaults against choices
         for arg in self.arguments:
@@ -100,12 +93,12 @@ class command(BaseModel):
                     for d in arg.default:
                         if d not in arg.choices:
                             raise ValueError(
-                                f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                                f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"  # noqa: E501
                             )
                 else:
                     if arg.default not in arg.choices:
                         raise ValueError(
-                            f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"
+                            f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{self.name}'"  # noqa: E501
                         )
         for opt in self.options:
             if opt.choices is not None and opt.default is not None:
@@ -113,10 +106,10 @@ class command(BaseModel):
                     for d in opt.default:
                         if d not in opt.choices:
                             raise ValueError(
-                                f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                                f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"  # noqa: E501
                             )
                 else:
                     if opt.default not in opt.choices:
                         raise ValueError(
-                            f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"
+                            f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{self.name}'"  # noqa: E501
                         )

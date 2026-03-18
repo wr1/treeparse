@@ -1,6 +1,6 @@
 """Example app with two arguments: mesh and anba."""
 
-from treeparse import cli, command, argument
+from treeparse import argument, cli, command
 
 
 def run_command(mesh: str, anba: str):

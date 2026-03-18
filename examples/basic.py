@@ -1,4 +1,4 @@
-from treeparse import cli, command, group, argument
+from treeparse import argument, cli, command, group
 
 
 def hello():
@@ -12,9 +12,7 @@ def hello1(name: str):
 app = cli(
     name="basic",
     help="A basic CLI example.",
-    commands=[
-        command(name="hello", help="Print hello world.", callback=hello, sort_key=-100)
-    ],
+    commands=[command(name="hello", help="Print hello world.", callback=hello, sort_key=-100)],
     subgroups=[
         group(
             name="example",

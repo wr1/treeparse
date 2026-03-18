@@ -1,6 +1,6 @@
 """Simple example demonstrating group-level options used in commands."""
 
-from treeparse import cli, group, command, option, argument
+from treeparse import argument, cli, command, group, option
 
 
 def greet(name: str, message: str):

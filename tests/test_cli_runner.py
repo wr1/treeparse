@@ -1,6 +1,6 @@
 """Comprehensive tests for the CliRunner testing framework."""
 
-from treeparse import cli, command, argument, cli_runner
+from treeparse import argument, cli, cli_runner, command
 
 
 def test_cli_runner_success_with_args():
@@ -125,12 +125,8 @@ def test_cli_runner_chain_execution():
     def step2(y: str):
         calls.append(("step2", y))
 
-    cmd1 = command(
-        name="step1", callback=step1, arguments=[argument(name="x", arg_type=int)]
-    )
-    cmd2 = command(
-        name="step2", callback=step2, arguments=[argument(name="y", arg_type=str)]
-    )
+    cmd1 = command(name="step1", callback=step1, arguments=[argument(name="x", arg_type=int)])
+    cmd2 = command(name="step2", callback=step2, arguments=[argument(name="y", arg_type=str)])
     from treeparse import chain
 
     chain_cmd = chain(name="pipe", chained_commands=[cmd1, cmd2])

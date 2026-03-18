@@ -1,15 +1,13 @@
-import sys
 import importlib.util
 import os
+import sys
 
 # Helper to import example modules
 dir_path = os.path.join(os.path.dirname(__file__), "..", "examples")
 
 
 def import_example(name):
-    spec = importlib.util.spec_from_file_location(
-        name, os.path.join(dir_path, f"{name}.py")
-    )
+    spec = importlib.util.spec_from_file_location(name, os.path.join(dir_path, f"{name}.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

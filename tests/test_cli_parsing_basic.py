@@ -1,6 +1,8 @@
-import pytest
 import sys
-from treeparse import cli, command, argument, option
+
+import pytest
+
+from treeparse import argument, cli, command, option
 
 
 def test_cli_build_parser():
@@ -13,9 +15,7 @@ def test_cli_validation_error(capsys):
     def callback(arg1: int):
         pass
 
-    cmd = command(
-        name="test", callback=callback, arguments=[argument(name="arg2", arg_type=int)]
-    )
+    cmd = command(name="test", callback=callback, arguments=[argument(name="arg2", arg_type=int)])
     app = cli(name="test", commands=[cmd])
     with pytest.raises(SystemExit):
         app.run()

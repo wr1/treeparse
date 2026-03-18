@@ -1,24 +1,26 @@
 """CLI model with methods."""
 
-from typing import List, Union, Optional, Callable, get_origin
 import argparse
-import sys
-import json
 import inspect
+import json
+import sys
 import warnings
 from enum import EnumMeta
 from pathlib import Path
-from pydantic import model_validator, computed_field, PrivateAttr
+from typing import Callable, List, Optional, Union, get_origin
+
+from pydantic import PrivateAttr, computed_field, model_validator
 from rich.console import Console
 from rich.syntax import Syntax
-from .group import group
-from .command import command
-from .chain import chain
-from .option import option
-from ..utils.color_config import color_config, ColorTheme
-from ..utils.helpers import load_yaml_config
+
+from ..utils.color_config import ColorTheme, color_config
 from ..utils.help_renderer import help_renderer
+from ..utils.helpers import load_yaml_config
 from .argument import argument
+from .chain import chain
+from .command import command
+from .group import group
+from .option import option
 
 
 def str2bool(v):
@@ -51,7 +53,7 @@ class RichArgumentParser(argparse.ArgumentParser):
             if len(parts) > 1:
                 invalid = parts[1].split(" (choose from")[0].strip("'")
                 console.print(
-                    f"[bold red]Error:[/bold red] {parts[0]}invalid choice: [yellow]'{invalid}'[/yellow] (choose from{parts[1].split('(choose from')[1]}"
+                    f"[bold red]Error:[/bold red] {parts[0]}invalid choice: [yellow]'{invalid}'[/yellow] (choose from{parts[1].split('(choose from')[1]}"  # noqa: E501
                 )
             else:
                 console.print(f"[bold red]Error:[/bold red] {message}")
@@ -103,9 +105,7 @@ class cli(group):
         def recurse(node: Union["cli", group, command, chain]) -> int:
             if isinstance(node, (command, chain)):
                 return 0
-            children = (
-                node.subgroups + node.commands if hasattr(node, "subgroups") else []
-            )
+            children = node.subgroups + node.commands if hasattr(node, "subgroups") else []
             if not children:
                 return 0
             return 1 + max(recurse(c) for c in children)
@@ -113,9 +113,7 @@ class cli(group):
         self._max_depth = recurse(self)
         return self._max_depth
 
-    def _get_node_from_path(
-        self, path: List[str]
-    ) -> Union[group, command, chain, "cli"]:
+    def _get_node_from_path(self, path: List[str]) -> Union[group, command, chain, "cli"]:
         """Get node from path."""
         current: Union["cli", group, command, chain] = self
         for p in path:
@@ -153,9 +151,7 @@ class cli(group):
                 }
                 for arg in sorted(node_args, key=lambda x: x.sort_key)
             ]
-            if isinstance(node, command) or (
-                isinstance(node, cli) and node.is_flat and node.callback is not None
-            ):
+            if isinstance(node, command) or (isinstance(node, cli) and node.is_flat and node.callback is not None):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
             elif isinstance(node, chain):
@@ -167,15 +163,9 @@ class cli(group):
                 else:
                     d["type"] = "group"
             if hasattr(node, "subgroups"):
-                d["subgroups"] = [
-                    recurse(g, is_root=False)
-                    for g in sorted(node.subgroups, key=lambda x: x.sort_key)
-                ]
+                d["subgroups"] = [recurse(g, is_root=False) for g in sorted(node.subgroups, key=lambda x: x.sort_key)]
             if hasattr(node, "commands"):
-                d["commands"] = [
-                    recurse(c, is_root=False)
-                    for c in sorted(node.commands, key=lambda x: x.sort_key)
-                ]
+                d["commands"] = [recurse(c, is_root=False) for c in sorted(node.commands, key=lambda x: x.sort_key)]
             return d
 
         return recurse(self, is_root=True)
@@ -189,17 +179,13 @@ class cli(group):
             return self._parser
         self._validate()
         max_depth = self.get_max_depth()
-        parser = RichArgumentParser(
-            prog=self.display_name, description=self.help, add_help=False
-        )
+        parser = RichArgumentParser(prog=self.display_name, description=self.help, add_help=False)
         self._add_args_and_opts_to_parser(parser, self.arguments, self.options)
         if self.is_flat:
             if self.callback is not None:
                 parser.set_defaults(func=self.callback)
         else:
-            self._build_subparser(
-                parser, self, 1, max_depth, self.arguments, self.options
-            )
+            self._build_subparser(parser, self, 1, max_depth, self.arguments, self.options)
         self._parser = parser
         return parser
 
@@ -222,12 +208,11 @@ class cli(group):
                     return t[s]
                 except KeyError:
                     raise ValueError(s)
+
             return _enum_conv, list(arg_type)
         return arg_type, None
 
-    def _add_args_and_opts_to_parser(
-        self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]
-    ):
+    def _add_args_and_opts_to_parser(self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]):
         for opt in opts:
             dest = opt.get_dest()
             kwargs = {"dest": dest, "help": opt.help}
@@ -281,9 +266,7 @@ class cli(group):
         if children:
             subparsers = parent_parser.add_subparsers(dest=f"command_{depth}")
             for child in children:
-                child_parser = subparsers.add_parser(
-                    child.display_name, help=child.help, add_help=False
-                )
+                child_parser = subparsers.add_parser(child.display_name, help=child.help, add_help=False)
                 if isinstance(child, group):
                     self._add_args_and_opts_to_parser(
                         child_parser,
@@ -354,9 +337,7 @@ class cli(group):
                 sig = inspect.signature(unwrapped_cb)
                 param_names = set(sig.parameters.keys())
                 param_types = {
-                    k: v.annotation
-                    for k, v in sig.parameters.items()
-                    if v.annotation != inspect.Parameter.empty
+                    k: v.annotation for k, v in sig.parameters.items() if v.annotation != inspect.Parameter.empty
                 }
                 provided_names = set(provided.keys())
                 if param_names != provided_names:
@@ -382,13 +363,10 @@ class cli(group):
                         continue
                     elif cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"
+                            f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"  # noqa: E501
                         )
                 if type_mismatches:
-                    error_msg = (
-                        f"Parameter type mismatch for command '{node.name}': "
-                        + "; ".join(type_mismatches)
-                    )
+                    error_msg = f"Parameter type mismatch for command '{node.name}': " + "; ".join(type_mismatches)
                     raise ValueError(error_msg)
                 # Check defaults against choices (only local)
                 for arg in node.arguments:
@@ -397,12 +375,12 @@ class cli(group):
                             for d in arg.default:
                                 if d not in arg.choices:
                                     raise ValueError(
-                                        f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                        f"Default value {d} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"  # noqa: E501
                                     )
                         else:
                             if arg.default not in arg.choices:
                                 raise ValueError(
-                                    f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"
+                                    f"Default value {arg.default} not in choices {arg.choices} for argument '{arg.name}' in command '{node.name}'"  # noqa: E501
                                 )
                 for opt in effective_opts:
                     if opt.choices is not None and opt.default is not None:
@@ -410,12 +388,12 @@ class cli(group):
                             for d in opt.default:
                                 if d not in opt.choices:
                                     raise ValueError(
-                                        f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                        f"Default value {d} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"  # noqa: E501
                                     )
                         else:
                             if opt.default not in opt.choices:
                                 raise ValueError(
-                                    f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"
+                                    f"Default value {opt.default} not in choices {opt.choices} for option '{opt.flags[0]}' in command '{node.name}'"  # noqa: E501
                                 )
             elif isinstance(node, chain):
                 node.validate()
@@ -520,11 +498,7 @@ class cli(group):
         missing = []
         for arg in current.effective_arguments:
             dest = arg.dest or arg.name
-            if (
-                arg.nargs is None
-                and arg.default is None
-                and getattr(args, dest, None) is None
-            ):
+            if arg.nargs is None and arg.default is None and getattr(args, dest, None) is None:
                 missing.append(arg.name)
         if missing:
             parser.error("the following arguments are required: " + ", ".join(missing))
@@ -574,9 +548,7 @@ class cli(group):
         arg_dict = {
             k: v
             for k, v in vars(args).items()
-            if not k.startswith("command_")
-            and k not in ("func", "chain_obj")
-            and k in provided_names
+            if not k.startswith("command_") and k not in ("func", "chain_obj") and k in provided_names
         }
         if hasattr(args, "chain_obj"):
             args.func(args.chain_obj, **arg_dict)

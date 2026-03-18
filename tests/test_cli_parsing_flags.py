@@ -1,5 +1,7 @@
-import pytest
 import sys
+
+import pytest
+
 from treeparse import cli, command, option
 
 

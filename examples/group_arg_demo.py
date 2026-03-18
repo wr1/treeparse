@@ -1,4 +1,4 @@
-from treeparse import cli, group, command, argument
+from treeparse import argument, cli, command, group
 
 
 def add(name: str, id: int):

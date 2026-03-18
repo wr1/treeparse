@@ -1,16 +1,13 @@
 """help renderer: renders CLI tree help via Rich."""
 
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List
+
 from rich.console import Console
-from rich.tree import Tree
 from rich.text import Text
+from rich.tree import Tree
 
 if TYPE_CHECKING:
     from ..models.cli import cli
-    from ..models.group import group
-    from ..models.command import command
-    from ..models.chain import chain
-    from ..models.option import option
 
 
 class help_renderer:
@@ -105,9 +102,7 @@ class help_renderer:
     def _get_name_part(self, node) -> str:
         root_cli = self._root
         args_parts = []
-        args_list = (
-            node.arguments if hasattr(node, "arguments") else node.effective_arguments
-        )
+        args_list = node.arguments if hasattr(node, "arguments") else node.effective_arguments
         for arg in sorted(args_list, key=lambda x: x.sort_key):
             part = f"[{arg.name.upper()}"
             extra = []
@@ -147,11 +142,7 @@ class help_renderer:
     def _get_root_label(self, max_start: int, depth: int, is_ancestor: bool) -> Text:
         root_cli = self._root
         style = "dim " + root_cli.colors.app if is_ancestor else root_cli.colors.app
-        help_style = (
-            "dim " + root_cli.colors.normal_help
-            if is_ancestor
-            else root_cli.colors.normal_help
-        )
+        help_style = "dim " + root_cli.colors.normal_help if is_ancestor else root_cli.colors.normal_help
         label = Text()
         label.append(root_cli.display_name, style=style)
         args_parts = []
@@ -200,9 +191,7 @@ class help_renderer:
     def _get_label(self, node, max_start: int, on_path: bool, depth: int, is_ancestor: bool) -> Text:
         root_cli = self._root
         node_type = type(node).__name__
-        base_help_style = (
-            root_cli.colors.requested_help if on_path else root_cli.colors.normal_help
-        )
+        base_help_style = root_cli.colors.requested_help if on_path else root_cli.colors.normal_help
         help_style = "dim " + base_help_style if is_ancestor else base_help_style
         name_style = (
             "dim " + root_cli.colors.group
@@ -213,14 +202,10 @@ class help_renderer:
             if is_ancestor
             else root_cli.colors.command
         )
-        arg_style = (
-            "dim " + root_cli.colors.argument if is_ancestor else root_cli.colors.argument
-        )
+        arg_style = "dim " + root_cli.colors.argument if is_ancestor else root_cli.colors.argument
         label = Text()
         label.append(node.display_name, style=name_style)
-        args_list = (
-            node.arguments if node_type == "group" else node.effective_arguments
-        )
+        args_list = node.arguments if node_type == "group" else node.effective_arguments
         args_parts = []
         for arg in sorted(args_list, key=lambda x: x.sort_key):
             part = f"[{arg.name.upper()}"
@@ -263,14 +248,8 @@ class help_renderer:
 
     def _get_folded_label(self, node, max_start: int, depth: int, is_ancestor: bool) -> Text:
         root_cli = self._root
-        name_style = (
-            "dim " + root_cli.colors.group if is_ancestor else root_cli.colors.group
-        )
-        help_style = (
-            "dim " + root_cli.colors.normal_help
-            if is_ancestor
-            else root_cli.colors.normal_help
-        )
+        name_style = "dim " + root_cli.colors.group if is_ancestor else root_cli.colors.group
+        help_style = "dim " + root_cli.colors.normal_help if is_ancestor else root_cli.colors.normal_help
         label = Text()
         label.append(f"{node.display_name} [...]", style=name_style)
         name_len = label.cell_len
@@ -299,14 +278,8 @@ class help_renderer:
 
     def _get_option_label(self, opt, max_start: int, depth: int, is_ancestor: bool) -> Text:
         root_cli = self._root
-        option_style = (
-            "dim " + root_cli.colors.option if is_ancestor else root_cli.colors.option
-        )
-        option_help_style = (
-            "dim " + root_cli.colors.option_help
-            if is_ancestor
-            else root_cli.colors.option_help
-        )
+        option_style = "dim " + root_cli.colors.option if is_ancestor else root_cli.colors.option
+        option_help_style = "dim " + root_cli.colors.option_help if is_ancestor else root_cli.colors.option_help
         default_style = "bold dim white"
         label = Text()
         flags = sorted(opt.flags, key=lambda f: (-len(f), f))
@@ -345,14 +318,10 @@ class help_renderer:
         if root_cli.show_defaults and opt.default is not None:
             default_str = f" (default: {opt.default})"
             if opt.help:
-                label.append(
-                    Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]")
-                )
+                label.append(Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]"))
             else:
                 label.append(" ")
-                label.append(
-                    Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]")
-                )
+                label.append(Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]"))
         return label
 
     def _add_children(
@@ -397,6 +366,4 @@ class help_renderer:
                 else:
                     child_label = self._get_label(child, max_start, False, depth + 1, False)
                     child_tree = current_tree.add(child_label)
-                    self._add_children(
-                        child_tree, child, False, [], max_start, depth + 1, selected_depth
-                    )
+                    self._add_children(child_tree, child, False, [], max_start, depth + 1, selected_depth)

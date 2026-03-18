@@ -1,6 +1,6 @@
 """Simple example demonstrating group-level arguments used in commands."""
 
-from treeparse import cli, group, command, argument
+from treeparse import argument, cli, command, group
 
 
 def process(name: str, user_id: int):
@@ -31,9 +31,7 @@ user_group = group(
     name="user",
     help="User management commands",
     commands=[process_cmd, update_cmd],
-    arguments=[
-        argument(name="user_id", arg_type=int, help="User ID for the operation")
-    ],
+    arguments=[argument(name="user_id", arg_type=int, help="User ID for the operation")],
 )
 
 app = cli(

@@ -4,9 +4,10 @@ Provides `cli_runner` to make testing CLIs simple and clean (no manual sys.argv 
 """
 
 import sys
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-from contextlib import redirect_stdout, redirect_stderr
 from typing import List, Optional
+
 from .models.cli import cli
 
 

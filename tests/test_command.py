@@ -1,5 +1,6 @@
 import pytest
-from treeparse import command, argument, option
+
+from treeparse import argument, command, option
 
 
 def test_command_validation_success():
@@ -34,9 +35,7 @@ def test_command_validation_type_mismatch():
     def callback(arg1: str):
         pass
 
-    cmd = command(
-        name="test", callback=callback, arguments=[argument(name="arg1", arg_type=int)]
-    )
+    cmd = command(name="test", callback=callback, arguments=[argument(name="arg1", arg_type=int)])
     with pytest.raises(ValueError) as exc:
         cmd.validate()
     assert "type mismatch" in str(exc.value)

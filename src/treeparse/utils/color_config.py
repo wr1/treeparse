@@ -1,6 +1,7 @@
 """Color configuration for help output."""
 
 from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -8,7 +9,9 @@ class ColorTheme(Enum):
     DEFAULT = "default"
     MONOCHROME = "monochrome"
     MONONEON = "mononeon"
-    RED_WHITE_BLUE = "red_white_blue"  # New patriotic theme
+    RED_WHITE_BLUE = "red_white_blue"
+    GITHUB = "github"
+    MONOKAI = "monokai"
 
 
 class color_config(BaseModel):
@@ -75,4 +78,38 @@ class color_config(BaseModel):
                 type_color="dim rgb(120,140,255)",
                 connector="rgb(105,105,105)",
                 guide="rgb(95,95,95)",
+            )
+        elif theme == ColorTheme.GITHUB:
+            # GitHub dark syntax palette (#0d1117 background)
+            # purple=app, blue=group/type, light-blue=command, orange=argument,
+            # red-pink=option, near-white=help, grey=dim help
+            return cls(
+                app="bold rgb(210,168,255)",  # #d2a8ff — purple (prominent title)
+                group="bold rgb(121,192,255)",  # #79c0ff — blue (structural)
+                command="rgb(165,214,255)",  # #a5d6ff — light blue (action)
+                argument="rgb(255,166,87)",  # #ffa657 — orange (constant-like)
+                option="rgb(255,123,114)",  # #ff7b72 — red-pink (keyword-like)
+                option_help="italic rgb(255,123,114)",
+                requested_help="bold rgb(230,237,243)",  # #e6edf3 — near-white
+                normal_help="rgb(139,148,158)",  # #8b949e — comment grey
+                type_color="dim rgb(121,192,255)",  # #79c0ff — blue
+                connector="rgb(48,54,61)",  # #30363d — dark border
+                guide="rgb(48,54,61)",
+            )
+        elif theme == ColorTheme.MONOKAI:
+            # Classic Monokai palette (Sublime Text / TextMate)
+            # green=app/command, cyan=group/type, purple=argument,
+            # pink=option, near-white=help, grey-brown=dim help
+            return cls(
+                app="bold rgb(166,226,46)",  # #a6e22e — green (function-like)
+                group="bold rgb(102,217,232)",  # #66d9e8 — cyan (type-like)
+                command="rgb(166,226,46)",  # #a6e22e — green
+                argument="rgb(174,129,255)",  # #ae81ff — purple (constant-like)
+                option="rgb(249,38,114)",  # #f92672 — pink (keyword-like)
+                option_help="italic rgb(249,38,114)",
+                requested_help="bold rgb(248,248,242)",  # #f8f8f2 — near-white
+                normal_help="rgb(117,113,94)",  # #75715e — grey-brown comment
+                type_color="rgb(102,217,232)",  # #66d9e8 — cyan
+                connector="rgb(73,72,62)",  # #49483e — dark monokai line
+                guide="rgb(73,72,62)",
             )
