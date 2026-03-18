@@ -35,7 +35,12 @@ class command(BaseModel):
 
     def validate(self):
         """Validate that callback parameters match defined arguments and options in name and type."""
-        sig = inspect.signature(self.callback)
+        unwrapped = inspect.unwrap(self.callback)
+        if inspect.iscoroutinefunction(unwrapped):
+            raise ValueError(
+                f"Callback for command '{self.name}' is async; treeparse does not support async callbacks"
+            )
+        sig = inspect.signature(unwrapped)
         param_names = set(sig.parameters.keys())
         param_types = {
             k: v.annotation
