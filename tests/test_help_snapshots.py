@@ -159,8 +159,8 @@ def test_flat_cli_help(flat_app):
     expected = (
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: My application\n"
-        "myapp            My application\n"
-        "└── greet [NAME] Greet someone\n"
+        "myapp                 My application\n"
+        "└── greet [NAME, str] Greet someone\n"
     )
     assert run_help(flat_app) == expected
 
@@ -169,10 +169,10 @@ def test_single_group_help(single_group_app):
     expected = (
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: My application\n"
-        "myapp             My application\n"
-        "└── ops           Operations group\n"
-        "    ├── run       Run it\n"
-        "    └── build [X] Build it\n"
+        "myapp                  My application\n"
+        "└── ops                Operations group\n"
+        "    ├── run            Run it\n"
+        "    └── build [X, int] Build it\n"
     )
     assert run_help(single_group_app) == expected
 
@@ -181,9 +181,9 @@ def test_option_help(option_app):
     expected = (
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: My CLI\n"
-        "myapp                 My CLI\n"
-        "└── thing             Do a thing\n"
-        "    └── --verbose, -v Verbose mode\n"
+        "myapp                       My CLI\n"
+        "└── thing                   Do a thing\n"
+        "    └── --verbose, -v: bool Verbose mode\n"
     )
     assert run_help(option_app) == expected
 
@@ -213,8 +213,8 @@ def test_chain_help(chain_app):
     expected = (
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: Pipeline CLI\n"
-        "myapp            Pipeline CLI\n"
-        "└── pipe [X] [Y] Pipeline\n"
+        "myapp                      Pipeline CLI\n"
+        "└── pipe [X, int] [Y, str] Pipeline\n"
     )
     assert run_help(chain_app) == expected
 

@@ -68,8 +68,8 @@ class cli(group):
     max_width: int = 120
     theme: ColorTheme = ColorTheme.DEFAULT
     colors: color_config = color_config()
-    show_types: bool = False
-    show_defaults: bool = False
+    show_types: bool = True
+    show_defaults: bool = True
     line_connect: bool = False
     yml_config: Path = None
     callback: Optional[Callable[..., None]] = None
@@ -215,6 +215,9 @@ class cli(group):
     def _add_args_and_opts_to_parser(self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]):
         for opt in opts:
             dest = opt.get_dest()
+            if opt.flag:
+                parser.add_argument(*opt.flags, action="store_true", dest=dest, help=opt.help)
+                continue
             kwargs = {"dest": dest, "help": opt.help}
             if opt.default is not None:
                 kwargs["default"] = opt.default

@@ -3,80 +3,33 @@
 
 # Treeparse
 
-**Tree-based CLI framework** for one-shot human and LLM CLI transparency.
+**CLI framework that makes any tool immediately usable as an LLM skill.**
 
 ## Overview
 
-Treeparse is an intuitive CLI framework leveraging `argparse`, `rich`, and `pydantic` to create structured, testable command-line interfaces. It mirrors the tree-like help output of `treeclick` but uses `argparse` for parsing and `pydantic` for model-based definitions.
+Treeparse is a Python CLI framework built on `argparse`, `rich`, and `pydantic`. Its primary purpose is to let an LLM discover and use any CLI tool without additional wiring: one call to `--json` returns the full command structure in a machine-readable format, and the LLM can invoke commands from there.
 
-Key goals include speed, LLM transparency (JSON and rich tree help formats), ease of authoring (especially for AI-generated code), and **advanced composability**.
+Every treeparse CLI supports two built-in help modes:
+
+- **`--help` / `-h`**: Rich tree output, human-readable, with branch pruning for subcommands.
+- **`--json` / `-j`**: Structured JSON of the entire CLI tree — commands, arguments, options, types, defaults, choices.
+
+An LLM receives the JSON in a single call and has everything it needs to use the tool as a skill: command names, argument types, defaults, and valid choices. No documentation, no prompt engineering, no extra integration layer.
 
 ![Demo scripts](docs/assets/demos.gif)
 
 ## Key Features
 
-- **Object-Oriented Structure**: Define CLI using Pydantic models: `cli`, `group`, `command`, `argument`, `option`.
+- **Object-Oriented Structure**: Define CLIs using Pydantic models: `cli`, `group`, `command`, `argument`, `option`.
 - **Rich Tree Help**: Tree-structured help with branch pruning for subcommands, including higher levels.
-- **JSON Output**: `--json` / `-j` provides syntax-highlighted JSON of the CLI structure for LLM parsing.
+- **JSON Output**: `--json` / `-j` provides syntax-highlighted JSON of the full CLI structure for LLM parsing.
 - **Parameter Validation**: Automatic matching of callback params to CLI definitions (names, types).
 - **Folding**: Collapse deep subgroups in help output with `group.fold = True` (shows as `group [...]`).
 - **Pluggability & Composition**: Full CLIs can be nested and reused as subgroups; supports YAML config and color themes.
-- **Sorting**: `sort_key` for ordering elements in help outputs.
-- **Type and Default Display**: Optional `show_types` and `show_defaults` flags.
+- **Sorting**: `sort_key` for ordering elements in help output.
+- **Type and Default Display**: `show_types` and `show_defaults` flags (both on by default).
 - **Nargs Support**: Handles variable arguments/options (e.g., `*`, `+` for lists).
-- **Boolean Handling**: Supports bool types with string-to-bool conversion.
-
-## Advanced Features
-
-### Folding
-Keep large CLIs readable by folding groups:
-
-```python
-user_group = group(
-    name="user",
-    help="User management commands",
-    fold=True,                    # Shows as "user [...]" in help tree
-    commands=[greet_cmd, list_cmd],
-)
-```
-
-Users can still explore the subtree with `myapp user --help`.
-
-### Pluggability & Composition
-Treeparse is highly composable — embed entire CLIs as subgroups:
-
-```python
-from treeparse import cli
-from basic import app as basic_app
-from demo import app as demo_app
-
-super_app = cli(
-    name="supertool",
-    help="Combined CLI",
-    subgroups=[basic_app, demo_app],   # Full CLIs reused!
-)
-```
-
-See `examples/basic_super.py` for a live example.
-
-Other pluggable features:
-
-- **Color Themes**: `theme="github"` (or `monokai`, `mononeon`, `monochrome`, `red_white_blue`)
-- **YAML Configuration**: `yml_config=Path("config.yml")` to override defaults
-- **Shell Completions**: Optional `shtab` support via `[completions]` extra
-- **Testing**: `CliRunner` for clean pytest integration
-
-### Developer Validation Demo
-Run `validation_error_demo.py` to explore rich error messages for name mismatches, type mismatches, and invalid defaults.
-
-## Structure
-
-- **`cli`**: Root (also reusable as a sub-CLI)
-- **`group`**: Nested containers with optional `fold`
-- **`command` / `chain`**: Executable actions
-- **`argument`** & **`option`**: Parameters
-
-Models are modularized; initialization in `__init__.py` handles forward references.
+- **Boolean Handling**: Supports bool types with string-to-bool conversion and `store_true` flags.
 
 ## Usage Example
 
@@ -109,14 +62,104 @@ if __name__ == "__main__":
 
 Run: `python examples/basic.py hello`
 
-## Help Output
+## LLM Skill Integration
 
-Tree-structured help prunes irrelevant branches while retaining context. Folding keeps deep hierarchies clean. Supports long help text wrapping.
+Call `--json` once to get the full CLI structure:
 
-## LLM Transparency
+```
+python mytool.py --json
+```
 
-- **Rich Tree Format**: Visual, human/LLM-readable tree.
-- **JSON Format**: Structured, parseable output for LLMs.
+```json
+{
+  "name": "basic",
+  "help": "A basic CLI example.",
+  "type": "cli",
+  "options": [],
+  "arguments": [],
+  "subgroups": [
+    {
+      "name": "example",
+      "type": "group",
+      "commands": [
+        {
+          "name": "hello",
+          "help": "Print hello world from the group.",
+          "type": "command",
+          "arguments": [
+            {
+              "name": "name",
+              "arg_type": "str",
+              "default": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "hello",
+      "help": "Print hello world.",
+      "type": "command"
+    }
+  ]
+}
+```
+
+The LLM sees the full tree: groups, commands, argument names, types, defaults, and choices. No additional documentation or integration code is needed.
+
+## Advanced Features
+
+### Folding
+Keep large CLIs readable by folding groups:
+
+```python
+user_group = group(
+    name="user",
+    help="User management commands",
+    fold=True,                    # Shows as "user [...]" in help tree
+    commands=[greet_cmd, list_cmd],
+)
+```
+
+Users and LLMs can still explore the subtree with `myapp user --help` or `myapp user --json`.
+
+### Pluggability & Composition
+Embed entire CLIs as subgroups:
+
+```python
+from treeparse import cli
+from basic import app as basic_app
+from demo import app as demo_app
+
+super_app = cli(
+    name="supertool",
+    help="Combined CLI",
+    subgroups=[basic_app, demo_app],   # Full CLIs reused
+)
+```
+
+See `examples/basic_super.py` for a live example.
+
+Other pluggable features:
+
+- **Color Themes**: `theme="github"` (or `monokai`, `mononeon`, `monochrome`, `red_white_blue`)
+- **YAML Configuration**: `yml_config=Path("config.yml")` to override defaults
+- **Shell Completions**: Optional `shtab` support via `[completions]` extra
+- **Testing**: `CliRunner` for clean pytest integration
+
+### Developer Validation
+Run `validation_error_demo.py` to explore rich error messages for name mismatches, type mismatches, and invalid defaults.
+
+## Structure
+
+- **`cli`**: Root (also reusable as a sub-CLI)
+- **`group`**: Nested containers with optional `fold`
+- **`command` / `chain`**: Executable actions
+- **`argument`** & **`option`**: Parameters
+
+Models are modularized; initialization in `__init__.py` handles forward references.
 
 ## Current Status
 

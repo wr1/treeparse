@@ -29,7 +29,7 @@ class help_renderer:
             children = current.subgroups + current.commands
             ch = next((c for c in children if c.display_name == p), None)
             if ch is None:
-                raise ValueError(f"Path not found: {path}")
+                break
             current = ch
             consumed = i + 1
         effective_path = path[:consumed]
@@ -66,7 +66,7 @@ class help_renderer:
                 flags = sorted(opt.flags, key=lambda f: (-len(f), f))
                 opt_name = ", ".join(flags)
                 opt_len = len(opt_name)
-                if root_cli.show_types:
+                if root_cli.show_types and not opt.flag:
                     type_name = opt.arg_type.__name__
                     opt_len += len(f": {type_name}")
                 if opt.choices is not None:
@@ -286,7 +286,7 @@ class help_renderer:
         flags_str = ", ".join(flags)
         label.append(flags_str, style=option_style)
         type_part = ""
-        if root_cli.show_types:
+        if root_cli.show_types and not opt.flag:
             type_name = opt.arg_type.__name__
             type_part = f": {type_name}"
         choices_part = ""
@@ -315,8 +315,9 @@ class help_renderer:
                     label.append(hl, style=option_help_style)
         else:
             label.append(" " * padding)
-        if root_cli.show_defaults and opt.default is not None:
-            default_str = f" (default: {opt.default})"
+        effective_default = False if (opt.flag and opt.default is None) else opt.default
+        if root_cli.show_defaults and effective_default is not None:
+            default_str = f" (default: {effective_default})"
             if opt.help:
                 label.append(Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]"))
             else:
