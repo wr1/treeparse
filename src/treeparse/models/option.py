@@ -18,6 +18,7 @@ class option(BaseModel):
     sort_key: int = 0
     required: bool = False
     inherit: bool = True
+    flag: bool = False
 
     @model_validator(mode="after")
     def check_required_default_contradiction(self):
@@ -26,6 +27,16 @@ class option(BaseModel):
                 f"option {self.flags!r}: required=True is contradicted by default={self.default!r}; "
                 "argparse ignores required when a default exists"
             )
+        if self.flag and self.required:
+            raise ValueError(
+                f"option {self.flags!r}: flag=True is incompatible with required=True; flags are always optional"
+            )
+        if self.flag and self.nargs is not None:
+            raise ValueError(
+                f"option {self.flags!r}: flag=True is incompatible with nargs={self.nargs!r}; flags take no value"
+            )
+        if self.flag:
+            self.arg_type = bool
         return self
 
     def get_dest(self) -> str:
