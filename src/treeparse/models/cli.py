@@ -366,7 +366,7 @@ class cli(group):
                         continue
                     elif cli_type != p_type:
                         type_mismatches.append(
-                            f"{param}: callback {p_type.__name__ if hasattr(p_type, '__name__') else str(p_type)} vs CLI {cli_type.__name__ if hasattr(cli_type, '__name__') else str(cli_type)}"  # noqa: E501
+                            f"{param}: callback {repr(p_type)} vs CLI {repr(cli_type)}"
                         )
                 if type_mismatches:
                     error_msg = f"Parameter type mismatch for command '{node.name}': " + "; ".join(type_mismatches)
