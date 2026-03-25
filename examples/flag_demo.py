@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from typing import List
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 from treeparse import argument, cli, command, option

@@ -80,9 +80,7 @@ class command(BaseModel):
             if get_origin(p_type) is Union:
                 continue
             if cli_type != p_type:
-                type_mismatches.append(
-                    f"{param}: callback {repr(p_type)} vs CLI {repr(cli_type)}"
-                )
+                type_mismatches.append(f"{param}: callback {repr(p_type)} vs CLI {repr(cli_type)}")
         if type_mismatches:
             error_msg = f"Parameter type mismatch for command '{self.name}': " + "; ".join(type_mismatches)
             raise ValueError(error_msg)
