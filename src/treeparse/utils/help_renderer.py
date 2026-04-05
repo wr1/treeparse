@@ -63,8 +63,7 @@ class help_renderer:
             opts = node.options if hasattr(node, "options") else node.effective_options
             opts_sorted = sorted(opts, key=lambda x: x.sort_key)
             for opt in opts_sorted:
-                flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-                opt_name = ", ".join(flags)
+                opt_name = ", ".join(opt.sorted_flags)
                 opt_len = len(opt_name)
                 if root_cli.show_types and not opt.flag:
                     type_name = opt.arg_type.__name__
@@ -282,8 +281,7 @@ class help_renderer:
         option_help_style = "dim " + root_cli.colors.option_help if is_ancestor else root_cli.colors.option_help
         default_style = "bold dim white"
         label = Text()
-        flags = sorted(opt.flags, key=lambda f: (-len(f), f))
-        flags_str = ", ".join(flags)
+        flags_str = ", ".join(opt.sorted_flags)
         label.append(flags_str, style=option_style)
         type_part = ""
         if root_cli.show_types and not opt.flag:

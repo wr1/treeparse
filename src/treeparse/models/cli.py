@@ -18,7 +18,7 @@ from ..utils.help_renderer import help_renderer
 from ..utils.helpers import load_yaml_config
 from .argument import argument
 from .chain import chain
-from .command import command
+from .command import command, _name_mismatch_error, _type_mismatch_error
 from .group import group
 from .option import option
 
@@ -38,7 +38,7 @@ def str2bool(v):
 def chain_runner(chain_obj: chain, **kwargs):
     """Runner function for chain commands."""
     for sub_cmd in chain_obj.chained_commands:
-        sig = inspect.signature(inspect.unwrap(sub_cmd.callback))
+        _, sig = sub_cmd._callback_sig
         sub_kwargs = {k: kwargs.get(k) for k in sig.parameters if k in kwargs}
         sub_cmd.callback(**sub_kwargs)
 
@@ -332,12 +332,11 @@ class cli(group):
                     if opt.nargs in ["*", "+"]:
                         opt_type = List[opt_type]
                     provided[dest] = opt_type
-                unwrapped_cb = inspect.unwrap(node.callback)
+                unwrapped_cb, sig = node._callback_sig
                 if inspect.iscoroutinefunction(unwrapped_cb):
                     raise ValueError(
                         f"Callback for command '{node.name}' is async; treeparse does not support async callbacks"
                     )
-                sig = inspect.signature(unwrapped_cb)
                 param_names = set(sig.parameters.keys())
                 param_types = {
                     k: v.annotation for k, v in sig.parameters.items() if v.annotation != inspect.Parameter.empty
@@ -346,13 +345,9 @@ class cli(group):
                 if param_names != provided_names:
                     missing = param_names - provided_names
                     extra = provided_names - param_names
-                    error_msg = f"Parameter name mismatch for command '{node.name}': "
-                    if missing:
-                        error_msg += f"Missing parameters in CLI definition: {missing}. "
-                    if extra:
-                        error_msg += f"Extra parameters in CLI definition: {extra}. "
-                    error_msg += f"Callback expects: {param_names}, CLI provides: {provided_names}"
-                    raise ValueError(error_msg)
+                    raise ValueError(
+                        _name_mismatch_error(node.name, unwrapped_cb.__name__, sig, provided, missing, extra)
+                    )
                 type_mismatches = []
                 for param, p_type in param_types.items():
                     cli_type = provided.get(param)
@@ -365,10 +360,9 @@ class cli(group):
                     if get_origin(p_type) is Union:
                         continue
                     elif cli_type != p_type:
-                        type_mismatches.append(f"{param}: callback {repr(p_type)} vs CLI {repr(cli_type)}")
+                        type_mismatches.append((param, p_type, cli_type))
                 if type_mismatches:
-                    error_msg = f"Parameter type mismatch for command '{node.name}': " + "; ".join(type_mismatches)
-                    raise ValueError(error_msg)
+                    raise ValueError(_type_mismatch_error(node.name, unwrapped_cb.__name__, sig, type_mismatches))
                 # Check defaults against choices (only local)
                 for arg in node.arguments:
                     if arg.choices is not None and arg.default is not None:

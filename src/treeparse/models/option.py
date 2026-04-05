@@ -39,6 +39,10 @@ class option(BaseModel):
             self.arg_type = bool
         return self
 
+    @property
+    def sorted_flags(self) -> List[str]:
+        return sorted(self.flags, key=lambda f: (-len(f), f))
+
     def get_dest(self) -> str:
         """Compute the destination name for this option."""
         if self.dest:
