@@ -103,7 +103,7 @@ class help_renderer:
         is_optional = arg.nargs in ("?", "*")
         inner = arg.name.upper()
         extras = []
-        if root_cli.show_types:
+        if root_cli.show_types and arg.show_type:
             extras.append(arg.arg_type.__name__)
         if arg.choices is not None:
             extras.append(f"({'|'.join(map(str, arg.choices))})")

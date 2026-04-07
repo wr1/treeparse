@@ -16,3 +16,4 @@ class argument(BaseModel):
     default: Any = None
     choices: Optional[List[Any]] = None
     sort_key: int = 0
+    show_type: bool = True
