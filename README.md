@@ -1,5 +1,8 @@
 [![ci](https://github.com/wr1/treeparse/actions/workflows/ci.yml/badge.svg)](https://github.com/wr1/treeparse/actions/workflows/ci.yml)
-![Version](https://img.shields.io/github/v/release/wr1/treeparse)
+[![Version](https://img.shields.io/github/v/release/wr1/treeparse)](https://github.com/wr1/treeparse/releases)
+[![PyPI](https://img.shields.io/pypi/v/treeparse)](https://pypi.org/project/treeparse/)
+[![Python](https://img.shields.io/pypi/pyversions/treeparse)](https://pypi.org/project/treeparse/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 # Treeparse
 
