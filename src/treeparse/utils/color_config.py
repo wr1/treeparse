@@ -12,6 +12,7 @@ class ColorTheme(Enum):
     RED_WHITE_BLUE = "red_white_blue"
     GITHUB = "github"
     MONOKAI = "monokai"
+    TOKYO_NIGHT = "tokyo_night"
 
 
 class color_config(BaseModel):
@@ -95,6 +96,23 @@ class color_config(BaseModel):
                 type_color="dim rgb(121,192,255)",  # #79c0ff — blue
                 connector="rgb(48,54,61)",  # #30363d — dark border
                 guide="rgb(48,54,61)",
+            )
+        elif theme == ColorTheme.TOKYO_NIGHT:
+            # Tokyo Night palette — popular VS Code dark theme
+            # purple=app, cyan=group/type, blue=command, orange=argument,
+            # red=option, light-fg=help, comment-blue=dim help
+            return cls(
+                app="bold rgb(187,154,247)",   # #bb9af7 — purple (prominent)
+                group="bold rgb(125,207,255)", # #7dcfff — cyan (structural)
+                command="rgb(122,162,247)",    # #7aa2f7 — blue (action)
+                argument="rgb(255,158,100)",   # #ff9e64 — orange (constant-like)
+                option="rgb(247,118,142)",     # #f7768e — red (keyword-like)
+                option_help="italic rgb(247,118,142)",
+                requested_help="bold rgb(192,202,245)",  # #c0caf5 — foreground
+                normal_help="rgb(86,95,137)",  # #565f89 — comment blue-grey
+                type_color="dim rgb(125,207,255)",       # #7dcfff — cyan
+                connector="rgb(31,35,53)",     # #1f2335 — dark bg variant
+                guide="rgb(31,35,53)",
             )
         elif theme == ColorTheme.MONOKAI:
             # Classic Monokai palette (Sublime Text / TextMate)

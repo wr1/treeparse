@@ -70,7 +70,7 @@ def test_choices_argument(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "[CHOICE, str (a|b|c)]" in captured.out
+    assert "<CHOICE, str (a|b|c)>" in captured.out
 
 
 def test_default_against_choices():

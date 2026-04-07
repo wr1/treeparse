@@ -98,21 +98,26 @@ class help_renderer:
         collect_recurse(root_cli, True, effective_path, 0)
         return max_start
 
-    def _get_name_part(self, node) -> str:
+    def _format_arg_part(self, arg) -> str:
         root_cli = self._root
-        args_parts = []
+        is_optional = arg.nargs in ("?", "*")
+        inner = arg.name.upper()
+        extras = []
+        if root_cli.show_types:
+            extras.append(arg.arg_type.__name__)
+        if arg.choices is not None:
+            extras.append(f"({'|'.join(map(str, arg.choices))})")
+        if extras:
+            inner += f", {' '.join(extras)}"
+        if is_optional:
+            if root_cli.show_defaults and arg.default is not None:
+                inner += f"={arg.default}"
+            return f"[{inner}]"
+        return f"<{inner}>"
+
+    def _get_name_part(self, node) -> str:
         args_list = node.arguments if hasattr(node, "arguments") else node.effective_arguments
-        for arg in sorted(args_list, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
+        args_parts = [self._format_arg_part(arg) for arg in sorted(args_list, key=lambda x: x.sort_key)]
         args_str = " ".join(args_parts)
         return f"{node.display_name} {args_str}".rstrip()
 
@@ -144,18 +149,7 @@ class help_renderer:
         help_style = "dim " + root_cli.colors.normal_help if is_ancestor else root_cli.colors.normal_help
         label = Text()
         label.append(root_cli.display_name, style=style)
-        args_parts = []
-        for arg in sorted(root_cli.arguments, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
+        args_parts = [self._format_arg_part(arg) for arg in sorted(root_cli.arguments, key=lambda x: x.sort_key)]
         args_str = " ".join(args_parts)
         if args_str:
             label.append(" ")
@@ -205,18 +199,7 @@ class help_renderer:
         label = Text()
         label.append(node.display_name, style=name_style)
         args_list = node.arguments if node_type == "group" else node.effective_arguments
-        args_parts = []
-        for arg in sorted(args_list, key=lambda x: x.sort_key):
-            part = f"[{arg.name.upper()}"
-            extra = []
-            if root_cli.show_types:
-                extra.append(arg.arg_type.__name__)
-            if arg.choices is not None:
-                extra.append(f"({'|'.join(map(str, arg.choices))})")
-            if extra:
-                part += f", {' '.join(extra)}"
-            part += "]"
-            args_parts.append(part)
+        args_parts = [self._format_arg_part(arg) for arg in sorted(args_list, key=lambda x: x.sort_key)]
         args_str = " ".join(args_parts)
         if args_str:
             label.append(" ")

@@ -160,7 +160,7 @@ def test_flat_cli_help(flat_app):
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: My application\n"
         "myapp                 My application\n"
-        "└── greet [NAME, str] Greet someone\n"
+        "└── greet <NAME, str> Greet someone\n"
     )
     assert run_help(flat_app) == expected
 
@@ -172,7 +172,7 @@ def test_single_group_help(single_group_app):
         "myapp                  My application\n"
         "└── ops                Operations group\n"
         "    ├── run            Run it\n"
-        "    └── build [X, int] Build it\n"
+        "    └── build <X, int> Build it\n"
     )
     assert run_help(single_group_app) == expected
 
@@ -193,7 +193,7 @@ def test_show_types_and_defaults(show_types_defaults_app):
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: My CLI\n"
         "myapp                    My CLI\n"
-        "└── proc [NAME, str]     Process\n"
+        "└── proc <NAME, str>     Process\n"
         "    └── --count, -c: int Count (default: 5)\n"
     )
     assert run_help(show_types_defaults_app) == expected
@@ -214,7 +214,7 @@ def test_chain_help(chain_app):
         "Usage: myapp ...  (--json, -j, --help, -h)\n"
         "Description: Pipeline CLI\n"
         "myapp                      Pipeline CLI\n"
-        "└── pipe [X, int] [Y, str] Pipeline\n"
+        "└── pipe <X, int> <Y, str> Pipeline\n"
     )
     assert run_help(chain_app) == expected
 

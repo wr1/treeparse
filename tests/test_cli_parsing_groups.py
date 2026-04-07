@@ -38,7 +38,7 @@ def test_group_argument_in_help(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "user [ID, int]" in captured.out
+    assert "user <ID, int>" in captured.out
 
 
 # @pytest.mark.skip("spurious fail")

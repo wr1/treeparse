@@ -28,7 +28,7 @@ def test_show_types(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "[ARG, int]" in captured.out
+    assert "<ARG, int>" in captured.out
     assert "--opt: str" in captured.out
 
 
