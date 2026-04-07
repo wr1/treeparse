@@ -55,6 +55,8 @@ if __name__ == "__main__":
 toolbox --json > skill.md
 ```
 
+**Human-readable tree**
+
 ```
 toolbox --help
 ```
