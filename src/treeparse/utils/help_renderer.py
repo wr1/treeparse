@@ -38,7 +38,8 @@ class help_renderer:
             path_str += " "
         if consumed < len(path):
             path_str += "[ARGS...] "
-        usage = f"[bold]Usage: {root_cli.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h)"
+        version_hint = ", --version, -V" if root_cli._resolve_version() else ""
+        usage = f"[bold]Usage: {root_cli.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h{version_hint})"
         console = Console(width=root_cli.max_width)
         console.print(usage)
         console.print(

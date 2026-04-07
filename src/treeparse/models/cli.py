@@ -73,6 +73,7 @@ class cli(group):
     line_connect: bool = False
     yml_config: Path = None
     callback: Optional[Callable[..., None]] = None
+    version: Optional[str] = None
 
     _parser: Optional[argparse.ArgumentParser] = PrivateAttr(default=None)
     _max_depth: Optional[int] = PrivateAttr(default=None)
@@ -456,6 +457,13 @@ class cli(group):
             sys.exit(1)
         # Handle special flags
         argv = sys.argv[1:]
+        version_flags = ["--version", "-V"]
+        has_version = any(a in version_flags for a in argv)
+        if has_version:
+            v = self._resolve_version()
+            if v:
+                console.print(v)
+            sys.exit(0)
         help_flags = ["--help", "-h"]
         json_flags = ["--json", "-j"]
         has_help = any(a in help_flags for a in argv)
@@ -549,6 +557,15 @@ class cli(group):
             args.func(args.chain_obj, **arg_dict)
         else:
             args.func(**arg_dict)
+
+    def _resolve_version(self) -> Optional[str]:
+        if self.version is not None:
+            return self.version
+        try:
+            from importlib.metadata import version as _pkg_version
+            return _pkg_version(self.name)
+        except Exception:
+            return None
 
     def print_help(self, path: List[str]):
         """Print custom tree help."""
