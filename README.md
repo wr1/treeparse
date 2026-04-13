@@ -6,9 +6,55 @@
 
 # Treeparse
 
-**CLI framework for building LLM skill toolboxes.**
+**Tree-shaped Python CLI framework with built-in JSON introspection.**
 
-Build individual tools, plug them into a toolbox CLI, run `toolbox --json > skill.md`. The LLM reads it once and can use every command.
+Most CLI frameworks focus on execution. Treeparse treats your CLI as both an **executable interface** and a **structured data model** — making it ideal for LLM tool schemas, automation workflows, and complex nested command hierarchies.
+
+## Why Treeparse
+
+| Feature | argparse | Click | Typer | Treeparse |
+|---|---|---|---|---|
+| Tree-structured help | No | Partial | Partial | Yes |
+| JSON CLI export | No | No | No | Yes |
+| Explicit structural model | No | No | No | Yes |
+| Signature validation | Minimal | No | Partial | Yes |
+
+## Quickstart
+
+```
+pip install treeparse
+```
+
+```python
+from treeparse import cli, command, argument
+
+def greet(name: str):
+    print(f"Hello {name}")
+
+greet_cmd = command(
+    name="greet",
+    callback=greet,
+    arguments=[argument(name="name", arg_type=str)],
+)
+
+app = cli(name="demo", commands=[greet_cmd])
+
+if __name__ == "__main__":
+    app.run()
+```
+
+```
+$ python app.py greet Alice
+Hello Alice
+
+$ python app.py --help
+demo
+└── greet
+    └── <NAME>
+
+$ python app.py --json
+{"name": "demo", "commands": [{"name": "greet", "arguments": [{"name": "name", "type": "str"}]}]}
+```
 
 ## Workflow
 
@@ -80,12 +126,6 @@ toolbox                      Creative toolbox.
 | `--json`, `-j` | Full CLI structure as JSON |
 | `--version`, `-V` | Auto-detected from package metadata, or set with `version=` on `cli` |
 
-## Installation
-
-```
-pip install treeparse
-```
-
 ## Models
 
 ```python
@@ -110,6 +150,16 @@ from treeparse.models.chain import chain
 - **YAML config**: `cli(yml_config=Path("config.yml"))` overrides defaults at runtime
 - **Themes**: `theme="github"` / `"monokai"` / `"mononeon"` / `"monochrome"`
 - **Testing**: `CliRunner` for pytest integration
+
+## When to Use
+
+Use Treeparse if you need:
+
+- Structured CLI composition
+- Machine-readable CLI definitions (LLM agents, orchestration, docs pipelines)
+- Complex nested command hierarchies
+
+Avoid if you only need a simple single-script CLI.
 
 ## License
 
