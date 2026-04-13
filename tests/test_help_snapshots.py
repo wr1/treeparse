@@ -157,7 +157,7 @@ def nested_app():
 
 def test_flat_cli_help(flat_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: My application\n"
         "myapp                 My application\n"
         "└── greet <NAME, str> Greet someone\n"
@@ -167,7 +167,7 @@ def test_flat_cli_help(flat_app):
 
 def test_single_group_help(single_group_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: My application\n"
         "myapp                  My application\n"
         "└── ops                Operations group\n"
@@ -179,7 +179,7 @@ def test_single_group_help(single_group_app):
 
 def test_option_help(option_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: My CLI\n"
         "myapp                       My CLI\n"
         "└── thing                   Do a thing\n"
@@ -190,7 +190,7 @@ def test_option_help(option_app):
 
 def test_show_types_and_defaults(show_types_defaults_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: My CLI\n"
         "myapp                    My CLI\n"
         "└── proc <NAME, str>     Process\n"
@@ -201,7 +201,7 @@ def test_show_types_and_defaults(show_types_defaults_app):
 
 def test_folded_group_help(folded_group_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: My CLI\n"
         "myapp              My CLI\n"
         "└── internal [...] Internal group\n"
@@ -211,7 +211,7 @@ def test_folded_group_help(folded_group_app):
 
 def test_chain_help(chain_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: Pipeline CLI\n"
         "myapp                      Pipeline CLI\n"
         "└── pipe <X, int> <Y, str> Pipeline\n"
@@ -221,7 +221,7 @@ def test_chain_help(chain_app):
 
 def test_nested_root_help(nested_app):
     expected = (
-        "Usage: myapp ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp ...  (--json, -j, --help, -h, --hv)\n"
         "Description: Nested CLI\n"
         "myapp            Nested CLI\n"
         "└── outer        Outer group\n"
@@ -233,7 +233,7 @@ def test_nested_root_help(nested_app):
 
 def test_nested_path_help(nested_app):
     expected = (
-        "Usage: myapp outer ...  (--json, -j, --help, -h)\n"
+        "Usage: myapp outer ...  (--json, -j, --help, -h, --hv)\n"
         "Description: Outer group\n"
         "myapp            Nested CLI\n"
         "└── outer        Outer group\n"

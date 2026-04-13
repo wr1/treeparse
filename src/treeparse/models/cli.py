@@ -155,9 +155,16 @@ class cli(group):
             if isinstance(node, command) or (isinstance(node, cli) and node.is_flat and node.callback is not None):
                 d["type"] = "command"
                 d["callback"] = node.callback.__name__
+                d["docstring"] = inspect.getdoc(inspect.unwrap(node.callback)) or ""
             elif isinstance(node, chain):
                 d["type"] = "chain"
                 d["chained"] = [recurse(c, False) for c in node.chained_commands]
+                parts = []
+                for cmd in node.chained_commands:
+                    doc = inspect.getdoc(inspect.unwrap(cmd.callback)) or ""
+                    if doc:
+                        parts.append({"command": cmd.name, "docstring": doc})
+                d["docstring"] = parts
             else:
                 if is_root:
                     d["type"] = "cli"
@@ -466,9 +473,11 @@ class cli(group):
             sys.exit(0)
         help_flags = ["--help", "-h"]
         json_flags = ["--json", "-j"]
+        verbose_help_flags = ["--hv"]
         has_help = any(a in help_flags for a in argv)
         has_json = any(a in json_flags for a in argv)
-        if has_help or has_json:
+        has_verbose_help = any(a in verbose_help_flags for a in argv)
+        if has_help or has_json or has_verbose_help:
             if has_json:
                 structure = self.structure_dict()
                 json_str = json.dumps(structure, indent=2)
@@ -476,12 +485,13 @@ class cli(group):
                 console.print(syntax)
             else:
                 path = []
+                stop_flags = help_flags + verbose_help_flags
                 for a in argv:
-                    if a in help_flags:
+                    if a in stop_flags:
                         break
                     if not a.startswith("-"):
                         path.append(a)
-                self.print_help(path)
+                self.print_help(path, verbose=has_verbose_help)
             sys.exit(0)
         # Normal parsing
         try:
@@ -567,6 +577,6 @@ class cli(group):
         except Exception:
             return None
 
-    def print_help(self, path: List[str]):
+    def print_help(self, path: List[str], verbose: bool = False):
         """Print custom tree help."""
-        help_renderer(self).render(path)
+        help_renderer(self).render(path, verbose=verbose)

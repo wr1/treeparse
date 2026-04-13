@@ -11,7 +11,7 @@ def test_cli_help_output(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test ...  (--json, -j, --help, -h)" in captured.out
+    assert "Usage: test ...  (--json, -j, --help, -h, --hv)" in captured.out
 
 
 def test_show_types(capsys):

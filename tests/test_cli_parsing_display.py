@@ -11,7 +11,7 @@ def test_display_name_includes_py(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test.py ...  (--json, -j, --help, -h)" in captured.out
+    assert "Usage: test.py ...  (--json, -j, --help, -h, --hv)" in captured.out
     assert app.display_name == "test.py"
 
 
@@ -66,5 +66,5 @@ def test_help_with_arguments(capsys):
     with pytest.raises(SystemExit):
         app.run()
     captured = capsys.readouterr()
-    assert "Usage: test greet [ARGS...] ...  (--json, -j, --help, -h)" in captured.out
+    assert "Usage: test greet [ARGS...] ...  (--json, -j, --help, -h, --hv)" in captured.out
     assert "Greet someone." in captured.out

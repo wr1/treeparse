@@ -9,12 +9,20 @@ logging.basicConfig(level=logging.INFO)
 
 
 def info(verbose: bool = False):
+    """Show general information about this CLI tool.
+
+    When verbose is enabled, extra diagnostic details are printed
+    including the current configuration and environment state."""
     logging.info("CLI Information")
     if verbose:
         logging.info("Detailed mode enabled.")
 
 
 def add_user(name: str, email: str = None):
+    """Create a new user account in the system.
+
+    The name is required and must be unique. If an email is provided
+    it will be associated with the account for notifications."""
     logging.info(f"Adding user: {name}")
     if email:
         logging.info(f"Email: {email}")
@@ -119,7 +127,7 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided), where the help is really really long to test the wrapping of the lines in the CLI even if the terminal width is really wide it still tests it because it is just so very very long.",  # noqa: E501
+            help="User ID to set role for (unspecified if not provided). Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
             arg_type=int,
             sort_key=0,
             default=2,

@@ -1,5 +1,6 @@
 """help renderer: renders CLI tree help via Rich."""
 
+import inspect
 from typing import TYPE_CHECKING, List
 
 from rich.console import Console
@@ -15,8 +16,25 @@ class help_renderer:
 
     def __init__(self, root_cli: "cli"):
         self._root = root_cli
+        self._verbose = False
 
-    def render(self, path: List[str]):
+    def _get_docstring(self, node) -> str:
+        """Return cleaned docstring from a command or chain's callbacks."""
+        node_type = type(node).__name__
+        if node_type == "command":
+            cb = inspect.unwrap(node.callback)
+            return inspect.getdoc(cb) or ""
+        if node_type == "chain":
+            parts = []
+            for cmd in node.chained_commands:
+                doc = inspect.getdoc(inspect.unwrap(cmd.callback)) or ""
+                if doc:
+                    parts.append(f"[{cmd.name}] {doc}")
+            return "\n".join(parts)
+        return ""
+
+    def render(self, path: List[str], verbose: bool = False):
+        self._verbose = verbose
         root_cli = self._root
         # Find the deepest valid command path
         current = root_cli
@@ -39,7 +57,7 @@ class help_renderer:
         if consumed < len(path):
             path_str += "[ARGS...] "
         version_hint = ", --version, -V" if root_cli._resolve_version() else ""
-        usage = f"[bold]Usage: {root_cli.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h{version_hint})"
+        usage = f"[bold]Usage: {root_cli.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h, --hv{version_hint})"
         console = Console(width=root_cli.max_width)
         console.print(usage)
         console.print(
@@ -208,6 +226,8 @@ class help_renderer:
         name_len = label.cell_len
         prefix_len = depth * 4
         padding = max_start - prefix_len - name_len
+        doc = self._get_docstring(node)
+        has_doc = bool(doc)
         if node.help:
             help_lines = self._wrap_help(node.help, root_cli.max_width - (max_start + 1))
             if root_cli.line_connect:
@@ -225,8 +245,31 @@ class help_renderer:
                     label.append("\n")
                     label.append(" " * (name_len + padding + 1))
                     label.append(hl, style=help_style)
+            if has_doc and not self._verbose:
+                label.append(" ▼", style="dim")
         else:
             label.append(" " * padding)
+            if has_doc and not self._verbose:
+                label.append(" ▼", style="dim")
+        if self._verbose and has_doc:
+            # Determine if this node will render children below the docstring.
+            # When it does, draw │ at position 0 of each continuation line so
+            # the vertical connector is preserved through the docstring block.
+            if node_type in ("command", "chain"):
+                has_rendered_children = bool(node.effective_options)
+            else:
+                opts = node.options if hasattr(node, "options") else []
+                has_rendered_children = bool(opts) or bool(
+                    getattr(node, "subgroups", None) or getattr(node, "commands", None)
+                )
+            for line in doc.splitlines():
+                if line.strip():
+                    label.append("\n")
+                    if has_rendered_children:
+                        label.append("│", style=root_cli.colors.guide)
+                        label.append(" " * (name_len + padding) + line, style="dim italic")
+                    else:
+                        label.append(" " * (name_len + padding + 1) + line, style="dim italic")
         return label
 
     def _get_folded_label(self, node, max_start: int, depth: int, is_ancestor: bool) -> Text:
