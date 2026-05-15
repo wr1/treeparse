@@ -28,7 +28,7 @@ user_group = group(
     ],
 )
 
-app = cli(name="group_option_demo.py", help="Demo of group options", subgroups=[user_group])
+app = cli(name="group-option-demo", help="Demo of group options", subgroups=[user_group])
 
 
 def main():

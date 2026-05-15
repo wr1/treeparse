@@ -6,7 +6,7 @@ def hello():
 
 
 app = cli(
-    name="theme_demo.py",
+    name="theme-demo",
     help="Demo of color themes",
     theme="mononeon",  # Change to MONOCHROME or DEFAULT to see differences
     commands=[

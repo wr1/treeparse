@@ -1,7 +1,5 @@
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Run via: uv run --with-editable . python examples/flag_demo.py
+# or after `pip install -e .[dev]`
 from treeparse import argument, cli, command, option
 
 
@@ -23,7 +21,7 @@ def build(target: str, release: bool, verbose: bool):
 
 
 app = cli(
-    name="flag_demo.py",
+    name="flag-demo",
     help="Demo of boolean flag options (flag=True).",
     line_connect=True,
     max_width=100,

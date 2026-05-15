@@ -6,10 +6,8 @@ Run:
     python examples/github_theme_demo.py pr --help
 """
 
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Run via: uv run --with-editable . python examples/github_theme_demo.py
+# or after `pip install -e .[dev]`
 from treeparse import argument, cli, command, group, option
 
 # --- callbacks ---

@@ -1,9 +1,8 @@
 import logging
-import sys
-from pathlib import Path
 from typing import List
 
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Run via: uv run --with-editable . python examples/list_demo.py
+# or after `pip install -e .[dev]`
 from treeparse import argument, cli, command, option
 
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +17,7 @@ def tag(tags: List[str]):
 
 
 app = cli(
-    name="list_demo.py",
+    name="list-demo",
     help="Demo of list arguments and options.",
     line_connect=True,
     max_width=135,

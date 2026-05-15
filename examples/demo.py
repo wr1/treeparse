@@ -1,8 +1,8 @@
 import logging
-import sys
-from pathlib import Path
+from typing import Optional
 
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Run via: uv run --with-editable . python examples/demo.py
+# or after `pip install -e .[dev]`
 from treeparse import argument, cli, command, group, option
 
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,7 @@ def info(verbose: bool = False):
         logging.info("Detailed mode enabled.")
 
 
-def add_user(name: str, email: str = None):
+def add_user(name: str, email: Optional[str] = None):
     """Create a new user account in the system.
 
     The name is required and must be unique. If an email is provided
@@ -34,10 +34,10 @@ def list_users():
 
 def set_role(
     role: str,
-    user_id: str = None,
-    reason: str = None,
-    user_id_option: int = None,
-    reason_option: str = None,
+    user_id: Optional[str] = None,
+    reason: Optional[str] = None,
+    user_id_option: Optional[int] = None,
+    reason_option: Optional[str] = None,
 ):
     user_id = user_id_option if user_id_option is not None else (user_id or "unspecified")
     reason = reason_option if reason_option is not None else reason
@@ -127,7 +127,7 @@ set_role_cmd = command(
         option(
             flags=["--user-id", "-u"],
             dest="user_id_option",
-            help="User ID to set role for (unspecified if not provided). Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+            help="User ID to set role for (unspecified if not provided). Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",  # noqa: E501
             arg_type=int,
             sort_key=0,
             default=2,

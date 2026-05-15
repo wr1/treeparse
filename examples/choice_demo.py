@@ -6,7 +6,7 @@ def set_level(level: int):
 
 
 app = cli(
-    name="choice_demo.py",
+    name="choice-demo",
     show_defaults=True,
     show_types=True,
     help="""Demo of choices for options.

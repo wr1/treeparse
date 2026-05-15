@@ -1,8 +1,8 @@
 from treeparse import argument, cli, command, group
 
 
-def add(name: str, id: int):
-    print(f"Adding user {name} with ID {id}")
+def add(name: str, user_id: int):
+    print(f"Adding user {name} with ID {user_id}")
 
 
 add_cmd = command(
@@ -15,12 +15,12 @@ add_cmd = command(
 user_group = group(
     name="user",
     help="User commands",
-    arguments=[argument(name="id", arg_type=int)],
+    arguments=[argument(name="user_id", arg_type=int)],
     commands=[add_cmd],
 )
 
 app = cli(
-    name="group_arg_demo.py",
+    name="group-arg-demo",
     help="Demo of group arguments",
     subgroups=[user_group],
     show_types=True,

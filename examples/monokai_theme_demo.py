@@ -6,10 +6,8 @@ Run:
     python examples/monokai_theme_demo.py run --help
 """
 
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Run via: uv run --with-editable . python examples/monokai_theme_demo.py
+# or after `pip install -e .[dev]`
 from treeparse import argument, cli, command, group, option
 
 # --- callbacks ---
@@ -19,32 +17,32 @@ def build_compile(target: str, release: bool, jobs: int):
     print(f"Compiling target={target!r} release={release} jobs={jobs}")
 
 
-def build_clean(all: bool):
-    print(f"Cleaning build artifacts all={all}")
+def build_clean(remove_all: bool):
+    print(f"Cleaning build artifacts remove_all={remove_all}")
 
 
-def build_check(fix: bool):
-    print(f"Checking code fix={fix}")
+def build_check(auto_fix: bool):
+    print(f"Checking code auto_fix={auto_fix}")
 
 
 def run_exec(binary: str, args: str):
     print(f"Running {binary!r} with args={args!r}")
 
 
-def run_test(filter: str, no_capture: bool):
-    print(f"Testing filter={filter!r} no_capture={no_capture}")
+def run_test(test_filter: str, no_capture: bool):
+    print(f"Testing test_filter={test_filter!r} no_capture={no_capture}")
 
 
-def run_bench(filter: str):
-    print(f"Benchmarking filter={filter!r}")
+def run_bench(bench_filter: str):
+    print(f"Benchmarking bench_filter={bench_filter!r}")
 
 
-def fmt_check(check: bool):
-    print(f"Formatting check={check}")
+def fmt_check(check_only: bool):
+    print(f"Formatting check_only={check_only}")
 
 
-def doc_open(open: bool):
-    print(f"Docs open={open}")
+def doc_open(open_docs: bool):
+    print(f"Docs open_docs={open_docs}")
 
 
 # --- structure ---

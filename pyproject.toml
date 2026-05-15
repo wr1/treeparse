@@ -2,6 +2,9 @@
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
+[tool.hatch.build]
+packages = ["src/treeparse"]
+
 [project]
 authors = [{name = "wr1"}]
 dependencies = [
@@ -16,20 +19,7 @@ requires-python = ">=3.8"
 version = "0.2.5"
 
 [project.scripts]
-basic = "examples.basic:main"
-basic_super = "examples.basic_super:main"
-chain_demo = "examples.chain_demo:main"
-choice_demo = "examples.choice_demo:main"
-demo = "examples.demo:main"
-group_arg_demo = "examples.group_arg_demo:main"
-group_arg_example = "examples.group_arg_example:main"
-group_option_demo = "examples.group_option_demo:main"
-group_option_example = "examples.group_option_example:main"
-list_demo = "examples.list_demo:main"
-root_option_example = "examples.root_option_example:main"
-theme_demo = "examples.theme_demo:main"
-treeparse = "treeparse.cli:main"  # Added for CLI callable
-validation_error_demo = "examples.validation_error_demo:main"
+treeparse = "treeparse.cli:main"
 
 [project.optional-dependencies]
 completions = ["shtab>=1.7.1"]

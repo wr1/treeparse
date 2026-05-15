@@ -126,6 +126,28 @@ toolbox                      Creative toolbox.
 | `--json`, `-j` | Full CLI structure as JSON |
 | `--version`, `-V` | Auto-detected from package metadata, or set with `version=` on `cli` |
 
+## Examples
+
+The `examples/` directory contains 19 executable demonstrations covering every Treeparse feature (themes, group-level arguments/options, chaining, `nargs="*"| "+"`, boolean flags, validation errors, root options, JSON export, custom sort/fold, etc.). They are **living documentation** and the primary reference for users and LLMs.
+
+**They are not installed as part of the package.** After `pip install treeparse` only the core library and the `treeparse` console script are available.
+
+### Recommended development workflow
+
+```bash
+# Clone and set up (once)
+git clone https://github.com/wr1/treeparse.git
+cd treeparse
+uv sync --dev
+
+# Run any example with an editable install (no need to touch PYTHONPATH)
+uv run --with-editable . python examples/demo.py --help
+uv run --with-editable . python examples/all_themes_demo.py --help
+python examples/validation_error_demo.py --help   # after the uv command above
+```
+
+The test suite (`tests/test_examples.py` and `test_demo_execution.py`) loads the examples via `importlib.util.spec_from_file_location` and will continue to pass without any changes to packaging.
+
 ## Models
 
 ```python
