@@ -16,7 +16,7 @@ description = "Intuitive CLI framework using argparse, rich, and pydantic"
 name = "treeparse"
 readme = "README.md"
 requires-python = ">=3.8"
-version = "0.2.5"
+version = "0.2.6"
 
 [project.scripts]
 treeparse = "treeparse.cli:main"
