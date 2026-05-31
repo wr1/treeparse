@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from treeparse import cli, command
 
 
@@ -6,8 +8,8 @@ def hello():
 
 
 app = cli(
-    name="treeparse",
-    help="Treeparse framework CLI",
+    name="treeparse-demo",
+    help="Treeparse framework demo CLI",
     commands=[command(name="hello", callback=hello)],
 )
 

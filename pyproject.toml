@@ -19,7 +19,7 @@ requires-python = ">=3.8"
 version = "0.2.6"
 
 [project.scripts]
-treeparse = "treeparse.cli:main"
+treeparse-demo = "treeparse.cli:main"
 
 [project.optional-dependencies]
 completions = ["shtab>=1.7.1"]
