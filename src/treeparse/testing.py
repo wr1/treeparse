@@ -3,10 +3,11 @@
 Provides `cli_runner` to make testing CLIs simple and clean (no manual sys.argv hacks).
 """
 
+from __future__ import annotations
+
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-from typing import List, Optional
 
 from .models.cli import cli
 
@@ -33,7 +34,7 @@ class cli_runner:
     def __init__(self, app: cli):
         self.app = app
 
-    def invoke(self, args: Optional[List[str]] = None) -> cli_result:
+    def invoke(self, args: list[str] | None = None) -> cli_result:
         """Invoke the CLI with the given arguments and capture output/exit code."""
         if args is None:
             args = []

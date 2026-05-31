@@ -1,6 +1,8 @@
 """option model."""
 
-from typing import Any, List, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 from pydantic import BaseModel, model_validator
 
@@ -8,13 +10,13 @@ from pydantic import BaseModel, model_validator
 class option(BaseModel):
     """option model."""
 
-    flags: List[str]
-    dest: Optional[str] = None
+    flags: list[str]
+    dest: str | None = None
     arg_type: Any = str
     help: str = ""
     default: Any = None
-    nargs: Union[int, str, None] = None
-    choices: Optional[List[Any]] = None
+    nargs: int | str | None = None
+    choices: list[Any] | None = None
     sort_key: int = 0
     required: bool = False
     inherit: bool = True
@@ -40,7 +42,7 @@ class option(BaseModel):
         return self
 
     @property
-    def sorted_flags(self) -> List[str]:
+    def sorted_flags(self) -> list[str]:
         return sorted(self.flags, key=lambda f: (-len(f), f))
 
     def get_dest(self) -> str:

@@ -1,5 +1,7 @@
 """CLI model with methods."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -7,18 +9,18 @@ import sys
 import warnings
 from enum import EnumMeta
 from pathlib import Path
-from typing import Callable, List, Optional, Union, get_origin
+from typing import Callable, List, Union, get_origin
 
 from pydantic import PrivateAttr, computed_field, model_validator
 from rich.console import Console
 from rich.syntax import Syntax
 
-from ..utils.color_config import ColorTheme, color_config
+from ..utils.color_config import color_config, color_theme
 from ..utils.help_renderer import help_renderer
 from ..utils.helpers import load_yaml_config
 from .argument import argument
 from .chain import chain
-from .command import command, _name_mismatch_error, _type_mismatch_error
+from .command import _name_mismatch_error, _type_mismatch_error, command
 from .group import group
 from .option import option
 
@@ -43,7 +45,7 @@ def chain_runner(chain_obj: chain, **kwargs):
         sub_cmd.callback(**sub_kwargs)
 
 
-class RichArgumentParser(argparse.ArgumentParser):
+class rich_argument_parser(argparse.ArgumentParser):
     """Custom ArgumentParser with rich-formatted errors."""
 
     def error(self, message):
@@ -66,17 +68,17 @@ class cli(group):
     """CLI model inheriting from group for sub-CLI composition."""
 
     max_width: int = 120
-    theme: ColorTheme = ColorTheme.DEFAULT
+    theme: color_theme = color_theme.DEFAULT
     colors: color_config = color_config()
     show_types: bool = True
     show_defaults: bool = True
     line_connect: bool = False
-    yml_config: Path = None
-    callback: Optional[Callable[..., None]] = None
-    version: Optional[str] = None
+    yml_config: Path | None = None
+    callback: Callable[..., None] | None = None
+    version: str | None = None
 
-    _parser: Optional[argparse.ArgumentParser] = PrivateAttr(default=None)
-    _max_depth: Optional[int] = PrivateAttr(default=None)
+    _parser: argparse.ArgumentParser | None = PrivateAttr(default=None)
+    _max_depth: int | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def set_colors_from_theme(self):
@@ -90,12 +92,12 @@ class cli(group):
 
     @computed_field
     @property
-    def effective_arguments(self) -> List[argument]:
+    def effective_arguments(self) -> list[argument]:
         return self.arguments
 
     @computed_field
     @property
-    def effective_options(self) -> List[option]:
+    def effective_options(self) -> list[option]:
         return self.options
 
     def get_max_depth(self) -> int:
@@ -103,7 +105,7 @@ class cli(group):
         if self._max_depth is not None:
             return self._max_depth
 
-        def recurse(node: Union["cli", group, command, chain]) -> int:
+        def recurse(node: "cli" | group | command | chain) -> int:
             if isinstance(node, (command, chain)):
                 return 0
             children = node.subgroups + node.commands if hasattr(node, "subgroups") else []
@@ -114,9 +116,9 @@ class cli(group):
         self._max_depth = recurse(self)
         return self._max_depth
 
-    def _get_node_from_path(self, path: List[str]) -> Union[group, command, chain, "cli"]:
+    def _get_node_from_path(self, path: list[str]) -> group | command | chain | "cli":
         """Get node from path."""
-        current: Union["cli", group, command, chain] = self
+        current: "cli" | group | command | chain = self
         for p in path:
             if not hasattr(current, "subgroups"):
                 raise ValueError(f"Path not found: {path}")
@@ -130,7 +132,7 @@ class cli(group):
     def structure_dict(self):
         """Return a dictionary representation of the CLI structure."""
 
-        def recurse(node: Union["cli", group, command, chain], is_root: bool = True):
+        def recurse(node: "cli" | group | command | chain, is_root: bool = True):
             d = {"name": node.name, "help": node.help}
             if hasattr(node, "sort_key"):
                 d["sort_key"] = node.sort_key
@@ -187,7 +189,7 @@ class cli(group):
             return self._parser
         self._validate()
         max_depth = self.get_max_depth()
-        parser = RichArgumentParser(prog=self.display_name, description=self.help, add_help=False)
+        parser = rich_argument_parser(prog=self.display_name, description=self.help, add_help=False)
         self._add_args_and_opts_to_parser(parser, self.arguments, self.options)
         if self.is_flat:
             if self.callback is not None:
@@ -220,7 +222,7 @@ class cli(group):
             return _enum_conv, list(arg_type)
         return arg_type, None
 
-    def _add_args_and_opts_to_parser(self, parser: argparse.ArgumentParser, args: List[argument], opts: List[option]):
+    def _add_args_and_opts_to_parser(self, parser: argparse.ArgumentParser, args: list[argument], opts: list[option]):
         for opt in opts:
             dest = opt.get_dest()
             if opt.flag:
@@ -260,11 +262,11 @@ class cli(group):
     def _build_subparser(
         self,
         parent_parser: argparse.ArgumentParser,
-        node: Union["cli", group],
+        node: "cli" | group,
         depth: int,
         max_depth: int,
-        inherited_args: List[argument],
-        inherited_opts: List[option],
+        inherited_args: list[argument],
+        inherited_opts: list[option],
     ):
         if depth > max_depth:
             return
@@ -318,10 +320,12 @@ class cli(group):
             return
 
         def recurse(
-            node: Union["cli", group, command, chain],
-            inherited_args: List[argument] = [],
-            inherited_opts: List[option] = [],
+            node: "cli" | group | command | chain,
+            inherited_args: list[argument] | None = None,
+            inherited_opts: list[option] | None = None,
         ):
+            inherited_args = inherited_args or []
+            inherited_opts = inherited_opts or []
             if isinstance(node, command):
                 # Filter inherited options to only those that should be inherited
                 inheritable_opts = [opt for opt in inherited_opts if opt.inherit]
@@ -568,15 +572,16 @@ class cli(group):
         else:
             args.func(**arg_dict)
 
-    def _resolve_version(self) -> Optional[str]:
+    def _resolve_version(self) -> str | None:
         if self.version is not None:
             return self.version
         try:
             from importlib.metadata import version as _pkg_version
+
             return _pkg_version(self.name)
         except Exception:
             return None
 
-    def print_help(self, path: List[str], verbose: bool = False):
+    def print_help(self, path: list[str], verbose: bool = False):
         """Print custom tree help."""
         help_renderer(self).render(path, verbose=verbose)

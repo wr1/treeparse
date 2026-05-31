@@ -1,11 +1,13 @@
 """Color configuration for help output."""
 
+from __future__ import annotations
+
 from enum import Enum
 
 from pydantic import BaseModel
 
 
-class ColorTheme(Enum):
+class color_theme(Enum):
     DEFAULT = "default"
     MONOCHROME = "monochrome"
     MONONEON = "mononeon"
@@ -31,10 +33,10 @@ class color_config(BaseModel):
     guide: str = "rgb(45,45,45)"
 
     @classmethod
-    def from_theme(cls, theme: ColorTheme):
-        if theme == ColorTheme.DEFAULT:
+    def from_theme(cls, theme: color_theme):
+        if theme == color_theme.DEFAULT:
             return cls()
-        elif theme == ColorTheme.MONOCHROME:
+        elif theme == color_theme.MONOCHROME:
             return cls(
                 app="bold italic rgb(200,200,200)",
                 group="bold rgb(180,180,180)",
@@ -48,7 +50,7 @@ class color_config(BaseModel):
                 connector="rgb(80,80,80)",
                 guide="rgb(80,80,80)",
             )
-        elif theme == ColorTheme.MONONEON:
+        elif theme == color_theme.MONONEON:
             # Neon green base: rgb(57,255,20)
             # Varying intensities by scaling brightness
             return cls(
@@ -64,7 +66,7 @@ class color_config(BaseModel):
                 connector="rgb(29,128,10)",  # 50%
                 guide="rgb(29,128,10)",  # 50%
             )
-        elif theme == ColorTheme.RED_WHITE_BLUE:
+        elif theme == color_theme.RED_WHITE_BLUE:
             # Red / White(light grey) / Blue patriotic theme
             # "White" replaced with light grey (rgb-based) for perfect readability on light terminals
             return cls(
@@ -80,7 +82,7 @@ class color_config(BaseModel):
                 connector="rgb(105,105,105)",
                 guide="rgb(95,95,95)",
             )
-        elif theme == ColorTheme.GITHUB:
+        elif theme == color_theme.GITHUB:
             # GitHub dark syntax palette (#0d1117 background)
             # purple=app, blue=group/type, light-blue=command, orange=argument,
             # red-pink=option, near-white=help, grey=dim help
@@ -97,24 +99,24 @@ class color_config(BaseModel):
                 connector="rgb(48,54,61)",  # #30363d — dark border
                 guide="rgb(48,54,61)",
             )
-        elif theme == ColorTheme.TOKYO_NIGHT:
+        elif theme == color_theme.TOKYO_NIGHT:
             # Tokyo Night palette — popular VS Code dark theme
             # purple=app, cyan=group/type, blue=command, orange=argument,
             # red=option, light-fg=help, comment-blue=dim help
             return cls(
-                app="bold rgb(187,154,247)",   # #bb9af7 — purple (prominent)
-                group="bold rgb(125,207,255)", # #7dcfff — cyan (structural)
-                command="rgb(122,162,247)",    # #7aa2f7 — blue (action)
-                argument="rgb(255,158,100)",   # #ff9e64 — orange (constant-like)
-                option="rgb(247,118,142)",     # #f7768e — red (keyword-like)
+                app="bold rgb(187,154,247)",  # #bb9af7 — purple (prominent)
+                group="bold rgb(125,207,255)",  # #7dcfff — cyan (structural)
+                command="rgb(122,162,247)",  # #7aa2f7 — blue (action)
+                argument="rgb(255,158,100)",  # #ff9e64 — orange (constant-like)
+                option="rgb(247,118,142)",  # #f7768e — red (keyword-like)
                 option_help="italic rgb(247,118,142)",
                 requested_help="bold rgb(192,202,245)",  # #c0caf5 — foreground
                 normal_help="rgb(86,95,137)",  # #565f89 — comment blue-grey
-                type_color="dim rgb(125,207,255)",       # #7dcfff — cyan
-                connector="rgb(31,35,53)",     # #1f2335 — dark bg variant
+                type_color="dim rgb(125,207,255)",  # #7dcfff — cyan
+                connector="rgb(31,35,53)",  # #1f2335 — dark bg variant
                 guide="rgb(31,35,53)",
             )
-        elif theme == ColorTheme.MONOKAI:
+        elif theme == color_theme.MONOKAI:
             # Classic Monokai palette (Sublime Text / TextMate)
             # green=app/command, cyan=group/type, purple=argument,
             # pink=option, near-white=help, grey-brown=dim help

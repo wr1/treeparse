@@ -1,6 +1,6 @@
 """Chain model for aggregating commands."""
 
-from typing import List
+from __future__ import annotations
 
 from pydantic import BaseModel, computed_field, model_validator
 
@@ -14,7 +14,7 @@ class chain(BaseModel):
 
     name: str
     help: str = ""
-    chained_commands: List[command]
+    chained_commands: list[command]
     sort_key: int = 0
 
     @model_validator(mode="after")
@@ -30,7 +30,7 @@ class chain(BaseModel):
 
     @computed_field
     @property
-    def effective_arguments(self) -> List[argument]:
+    def effective_arguments(self) -> list[argument]:
         all_args = []
         seen = set()
         for cmd in self.chained_commands:
@@ -44,7 +44,7 @@ class chain(BaseModel):
 
     @computed_field
     @property
-    def effective_options(self) -> List[option]:
+    def effective_options(self) -> list[option]:
         all_opts = []
         seen = set()
         for cmd in self.chained_commands:

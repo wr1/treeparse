@@ -1,9 +1,11 @@
 """command model."""
 
+from __future__ import annotations
+
 import inspect
 from typing import Any, Callable, List, Union, get_origin
 
-from pydantic import BaseModel, PrivateAttr, computed_field
+from pydantic import BaseModel, Field, PrivateAttr, computed_field
 
 from .argument import argument
 from .option import option
@@ -80,8 +82,8 @@ class command(BaseModel):
     name: str
     help: str = ""
     callback: Callable[..., None]
-    arguments: List[argument] = []
-    options: List[option] = []
+    arguments: list[argument] = Field(default_factory=list)
+    options: list[option] = Field(default_factory=list)
     sort_key: int = 0
 
     _unwrapped_cb: Any = PrivateAttr(default=None)
@@ -102,12 +104,12 @@ class command(BaseModel):
 
     @computed_field
     @property
-    def effective_arguments(self) -> List[argument]:
+    def effective_arguments(self) -> list[argument]:
         return self.arguments
 
     @computed_field
     @property
-    def effective_options(self) -> List[option]:
+    def effective_options(self) -> list[option]:
         return self.options
 
     def validate(self):
@@ -134,9 +136,7 @@ class command(BaseModel):
         if param_names != provided_names:
             missing = param_names - provided_names
             extra = provided_names - param_names
-            raise ValueError(
-                _name_mismatch_error(self.name, unwrapped.__name__, sig, provided, missing, extra)
-            )
+            raise ValueError(_name_mismatch_error(self.name, unwrapped.__name__, sig, provided, missing, extra))
         # Check types
         type_mismatches = []
         for param, p_type in param_types.items():

@@ -1,5 +1,7 @@
 """Models package initialization."""
 
+from __future__ import annotations
+
 from ..utils.color_config import color_config
 from .argument import argument
 from .chain import chain

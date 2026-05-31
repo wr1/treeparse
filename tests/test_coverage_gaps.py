@@ -497,7 +497,7 @@ def test_missing_required_argument_error(capsys):
 
 
 # ---------------------------------------------------------------------------
-# RichArgumentParser.error: non-invalid-choice branch
+# rich_argument_parser.error: non-invalid-choice branch
 # ---------------------------------------------------------------------------
 
 
@@ -519,17 +519,17 @@ def test_rich_parser_generic_error(capsys):
 
 
 def test_red_white_blue_theme():
-    from treeparse.utils.color_config import ColorTheme, color_config
+    from treeparse.utils.color_config import color_config, color_theme
 
-    cfg = color_config.from_theme(ColorTheme.RED_WHITE_BLUE)
+    cfg = color_config.from_theme(color_theme.RED_WHITE_BLUE)
     assert "255,50,50" in cfg.app  # red
     assert "160,180,255" in cfg.group  # blue
 
 
 def test_github_theme():
-    from treeparse.utils.color_config import ColorTheme, color_config
+    from treeparse.utils.color_config import color_config, color_theme
 
-    cfg = color_config.from_theme(ColorTheme.GITHUB)
+    cfg = color_config.from_theme(color_theme.GITHUB)
     assert "210,168,255" in cfg.app  # purple
     assert "121,192,255" in cfg.group  # blue
     assert "255,166,87" in cfg.argument  # orange
@@ -537,9 +537,9 @@ def test_github_theme():
 
 
 def test_monokai_theme():
-    from treeparse.utils.color_config import ColorTheme, color_config
+    from treeparse.utils.color_config import color_config, color_theme
 
-    cfg = color_config.from_theme(ColorTheme.MONOKAI)
+    cfg = color_config.from_theme(color_theme.MONOKAI)
     assert "166,226,46" in cfg.app  # green
     assert "102,217,232" in cfg.group  # cyan
     assert "174,129,255" in cfg.argument  # purple
@@ -756,16 +756,16 @@ def test_get_node_from_path_into_command():
 
 
 # ---------------------------------------------------------------------------
-# models/cli.py: RichArgumentParser.error "invalid choice" with len(parts)==1
+# models/cli.py: rich_argument_parser.error "invalid choice" with len(parts)==1
 # ---------------------------------------------------------------------------
 
 
 def test_rich_parser_invalid_choice_no_colon(capsys):
     # "invalid choice" in message but no "invalid choice: " (no colon+space)
     # → triggers the else branch at line 57 (len(parts) <= 1)
-    from treeparse.models.cli import RichArgumentParser
+    from treeparse.models.cli import rich_argument_parser
 
-    p = RichArgumentParser(prog="test")
+    p = rich_argument_parser(prog="test")
     with pytest.raises(SystemExit):
         p.error("invalid choice detected")
     out = capsys.readouterr().out

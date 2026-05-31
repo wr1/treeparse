@@ -1,8 +1,8 @@
 """group model."""
 
-from typing import List, Union
+from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .argument import argument
 from .chain import chain
@@ -15,10 +15,10 @@ class group(BaseModel):
 
     name: str
     help: str = ""
-    subgroups: List["group"] = []
-    commands: List[Union[command, chain]] = []
-    options: List[option] = []
-    arguments: List[argument] = []
+    subgroups: list[group] = Field(default_factory=list)
+    commands: list[command | chain] = Field(default_factory=list)
+    options: list[option] = Field(default_factory=list)
+    arguments: list[argument] = Field(default_factory=list)
     sort_key: int = 0
     fold: bool = False
 

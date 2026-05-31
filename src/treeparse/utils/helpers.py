@@ -1,12 +1,14 @@
 """Helper functions."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
 
-def load_yaml_config(config_path: str) -> Dict[str, Any]:
+def load_yaml_config(config_path: str) -> dict[str, Any]:
     """Load YAML configuration file."""
     path = Path(config_path)
     if not path.exists():

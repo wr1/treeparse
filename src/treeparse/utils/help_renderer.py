@@ -1,11 +1,17 @@
 """help renderer: renders CLI tree help via Rich."""
 
+from __future__ import annotations
+
 import inspect
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.text import Text
 from rich.tree import Tree
+
+from ..models.chain import chain
+from ..models.command import command
+from ..models.group import group
 
 if TYPE_CHECKING:
     from ..models.cli import cli
@@ -20,11 +26,10 @@ class help_renderer:
 
     def _get_docstring(self, node) -> str:
         """Return cleaned docstring from a command or chain's callbacks."""
-        node_type = type(node).__name__
-        if node_type == "command":
+        if isinstance(node, command):
             cb = inspect.unwrap(node.callback)
             return inspect.getdoc(cb) or ""
-        if node_type == "chain":
+        if isinstance(node, chain):
             parts = []
             for cmd in node.chained_commands:
                 doc = inspect.getdoc(inspect.unwrap(cmd.callback)) or ""
@@ -33,7 +38,7 @@ class help_renderer:
             return "\n".join(parts)
         return ""
 
-    def render(self, path: List[str], verbose: bool = False):
+    def render(self, path: list[str], verbose: bool = False):
         self._verbose = verbose
         root_cli = self._root
         # Find the deepest valid command path
@@ -41,7 +46,7 @@ class help_renderer:
         consumed = 0
         for i, p in enumerate(path):
             if not hasattr(current, "subgroups"):
-                if type(current).__name__ == "command" and consumed < len(path):
+                if isinstance(current, command) and consumed < len(path):
                     break
                 raise ValueError(f"Path not found: {path}")
             children = current.subgroups + current.commands
@@ -57,7 +62,10 @@ class help_renderer:
         if consumed < len(path):
             path_str += "[ARGS...] "
         version_hint = ", --version, -V" if root_cli._resolve_version() else ""
-        usage = f"[bold]Usage: {root_cli.display_name} {path_str}... [rgb(45,45,45)] (--json, -j, --help, -h, --hv{version_hint})"
+        usage = (
+            f"[bold]Usage: {root_cli.display_name} {path_str}... "
+            f"[rgb(45,45,45)] (--json, -j, --help, -h, --hv{version_hint})"
+        )
         console = Console(width=root_cli.max_width)
         console.print(usage)
         console.print(
@@ -70,11 +78,11 @@ class help_renderer:
         self._add_children(tree, root_cli, True, effective_path, max_start, 0, selected_depth)
         console.print(tree)
 
-    def _compute_max_start(self, effective_path: List[str]) -> int:
+    def _compute_max_start(self, effective_path: list[str]) -> int:
         root_cli = self._root
         max_start = 0
 
-        def collect_recurse(node, on_path: bool, remaining_path: List[str], depth: int):
+        def collect_recurse(node, on_path: bool, remaining_path: list[str], depth: int):
             nonlocal max_start
             name_len = len(self._get_name_part(node))
             prefix_len = depth * 4
@@ -106,7 +114,7 @@ class help_renderer:
                         break
             else:
                 for child in children:
-                    if type(child).__name__ == "group" and child.fold:
+                    if isinstance(child, group) and child.fold:
                         folded_name = f"{child.display_name} [...]"
                         name_len = len(folded_name)
                         prefix_len = (depth + 1) * 4
@@ -140,7 +148,7 @@ class help_renderer:
         args_str = " ".join(args_parts)
         return f"{node.display_name} {args_str}".rstrip()
 
-    def _wrap_help(self, help: str, width: int) -> List[str]:
+    def _wrap_help(self, help: str, width: int) -> list[str]:
         if width <= 0:
             width = 20
         lines = []
@@ -355,7 +363,7 @@ class help_renderer:
         current_tree: Tree,
         node,
         on_path: bool,
-        remaining_path: List[str],
+        remaining_path: list[str],
         max_start: int,
         depth: int,
         selected_depth: int,
@@ -386,7 +394,7 @@ class help_renderer:
                     break
         else:
             for child in children:
-                if type(child).__name__ == "group" and child.fold:
+                if isinstance(child, group) and child.fold:
                     folded_label = self._get_folded_label(child, max_start, depth + 1, False)
                     current_tree.add(folded_label)
                 else:
