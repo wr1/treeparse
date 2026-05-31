@@ -79,6 +79,10 @@ notes/
 *.minder
 examples/.coverage
 
+# Local tooling caches / config (grok CLI)
+.grk_cache.json
+.grkrc
+
 # OS generated
 .DS_Store
 Thumbs.db
