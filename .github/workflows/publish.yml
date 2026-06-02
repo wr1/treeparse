@@ -25,6 +25,18 @@ jobs:
         run: uv pip install build
       - name: Build package with uv
         run: uv run python -m build  # Uses uv to run the build in the virtual environment
+      - name: Verify wheel contains the package
+        # Guard against shipping a code-less wheel (see the 0.2.7 empty-wheel
+        # incident caused by a hatchling src-layout misconfiguration).
+        run: |
+          uv run python - <<'PY'
+          import glob, zipfile, sys
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          if "treeparse/__init__.py" not in names:
+              sys.exit(f"FATAL: {wheel} is missing treeparse/ modules: {names}")
+          print(f"OK: {wheel} contains {sum(n.endswith('.py') for n in names)} modules")
+          PY
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         # with:
