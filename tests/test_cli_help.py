@@ -1,3 +1,4 @@
+import os
 import sys
 
 import pytest
@@ -46,6 +47,58 @@ def test_show_defaults(capsys):
         app.run()
     captured = capsys.readouterr()
     assert "(default: default_value)" in captured.out
+
+
+def test_show_defaults_option_home_abbreviated(capsys):
+    home_subdir = os.path.join(os.path.expanduser("~"), "myproject", "data")
+    app = cli(name="test", show_defaults=True)
+    opt = option(flags=["--target"], arg_type=str, default=home_subdir)
+
+    def callback(target: str):
+        pass
+
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app.commands.append(cmd)
+    sys.argv = ["test", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "(default: ~/myproject/data)" in captured.out
+    assert os.path.expanduser("~") not in captured.out
+
+
+def test_show_defaults_argument_home_abbreviated(capsys):
+    home_subdir = os.path.join(os.path.expanduser("~"), "myproject")
+    app = cli(name="test", show_defaults=True)
+    arg = argument(name="path", arg_type=str, nargs="?", default=home_subdir)
+
+    def callback(path: str):
+        pass
+
+    cmd = command(name="cmd", arguments=[arg], callback=callback)
+    app.commands.append(cmd)
+    sys.argv = ["test", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "=~/myproject]" in captured.out
+    assert os.path.expanduser("~") not in captured.out
+
+
+def test_show_defaults_non_home_path_unchanged(capsys):
+    app = cli(name="test", show_defaults=True)
+    opt = option(flags=["--target"], arg_type=str, default="/etc/config")
+
+    def callback(target: str):
+        pass
+
+    cmd = command(name="cmd", options=[opt], callback=callback)
+    app.commands.append(cmd)
+    sys.argv = ["test", "--help"]
+    with pytest.raises(SystemExit):
+        app.run()
+    captured = capsys.readouterr()
+    assert "(default: /etc/config)" in captured.out
 
 
 def test_cli_json_output(capsys):

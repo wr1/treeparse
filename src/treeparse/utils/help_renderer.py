@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -15,6 +16,19 @@ from ..models.group import group
 
 if TYPE_CHECKING:
     from ..models.cli import cli
+
+
+def _format_default(value) -> str:
+    """Render a default value for help, abbreviating the home directory as ``~``.
+
+    Keeps help output portable and avoids leaking the user's home path when a
+    default points at a directory under ``$HOME``.
+    """
+    text = str(value)
+    home = os.path.expanduser("~")
+    if home and home != os.sep and (text == home or text.startswith(home + os.sep)):
+        return "~" + text[len(home) :]
+    return text
 
 
 class help_renderer:
@@ -138,7 +152,7 @@ class help_renderer:
             inner += f", {' '.join(extras)}"
         if is_optional:
             if root_cli.show_defaults and arg.default is not None:
-                inner += f"={arg.default}"
+                inner += f"={_format_default(arg.default)}"
             return f"[{inner}]"
         return f"<{inner}>"
 
@@ -350,7 +364,7 @@ class help_renderer:
             label.append(" " * padding)
         effective_default = False if (opt.flag and opt.default is None) else opt.default
         if root_cli.show_defaults and effective_default is not None:
-            default_str = f" (default: {effective_default})"
+            default_str = f" (default: {_format_default(effective_default)})"
             if opt.help:
                 label.append(Text.from_markup(f"[{default_style}]{default_str}[/{default_style}]"))
             else:
