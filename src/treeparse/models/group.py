@@ -21,6 +21,9 @@ class group(BaseModel):
     arguments: list[argument] = Field(default_factory=list)
     sort_key: int = 0
     fold: bool = False
+    default: str | None = None
+    """Name of a direct child command to route to when the next token is not a
+    known subcommand (or is missing / an option flag). None disables routing."""
 
     @property
     def display_name(self) -> str:

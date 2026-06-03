@@ -158,7 +158,7 @@ from treeparse.models.chain import chain
 | Model | Purpose |
 |-------|---------|
 | `cli` | Root — reusable as a subgroup in another `cli` |
-| `group` | Namespace with optional `fold=True` to collapse in help |
+| `group` | Namespace with optional `fold=True` to collapse in help, or `default="cmd"` to route unknown tokens to a child command |
 | `command` | Executable action with a callback |
 | `chain` | Runs multiple commands in sequence |
 | `argument` | Positional — `<ARG>` required, `[ARG]` optional (`nargs="?"`/`"*"`) |
@@ -167,6 +167,7 @@ from treeparse.models.chain import chain
 ## More
 
 - **Folding**: `group(fold=True)` collapses to `group [...]` — drill in with `toolbox ink --help`
+- **Default subcommand**: `group(default="open")` routes a bare group, an option flag, or an unknown token to that child command (`toolbox ink foo` → `toolbox ink open foo`); explicitly-named subcommands always win
 - **Inheritance**: `option(inherit=True)` propagates to all child commands
 - **Validation**: callback param names and types checked against CLI definition at startup
 - **YAML config**: `cli(yml_config=Path("config.yml"))` overrides defaults at runtime

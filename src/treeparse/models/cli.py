@@ -405,6 +405,9 @@ class cli(group):
             elif isinstance(node, chain):
                 node.validate()
             else:
+                default = getattr(node, "default", None)
+                if default is not None and default not in {c.name for c in node.commands}:
+                    raise ValueError(f"group '{node.name}': default '{default}' does not match any child command")
                 for cmd in node.commands:
                     recurse(
                         cmd,
@@ -450,6 +453,36 @@ class cli(group):
                     UserWarning,
                     stacklevel=4,
                 )
+
+    def _apply_group_defaults(self, argv: list[str]) -> list[str]:
+        """Rewrite argv so groups with a ``default`` route to it.
+
+        Walks the command tree alongside argv. At each group/cli node whose
+        ``default`` is set, if the next token is missing, an option flag, or an
+        unknown bare word, the default command's name is spliced into argv at
+        that position so the original token (if any) becomes its argument.
+        Explicitly-named child commands always win.
+        """
+        argv = list(argv)
+        node = self
+        i = 0
+        while hasattr(node, "subgroups"):
+            children = node.subgroups + node.commands
+            if not children:
+                break
+            child_names = {c.display_name for c in children}
+            if i < len(argv) and argv[i] in child_names:
+                name = argv[i]
+                node = next(c for c in children if c.display_name == name)
+                i += 1
+                continue
+            default = getattr(node, "default", None)
+            if default is None:
+                break
+            argv.insert(i, default)
+            node = next(c for c in children if c.display_name == default)
+            i += 1
+        return argv
 
     def run(self):
         """Run the CLI."""
@@ -498,8 +531,9 @@ class cli(group):
                 self.print_help(path, verbose=has_verbose_help)
             sys.exit(0)
         # Normal parsing
+        argv = self._apply_group_defaults(argv)
         try:
-            args = parser.parse_args()
+            args = parser.parse_args(argv)
         except SystemExit:
             sys.exit(1)
         path = []

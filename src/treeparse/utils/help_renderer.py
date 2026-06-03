@@ -250,8 +250,11 @@ class help_renderer:
         padding = max_start - prefix_len - name_len
         doc = self._get_docstring(node)
         has_doc = bool(doc)
-        if node.help:
-            help_lines = self._wrap_help(node.help, root_cli.max_width - (max_start + 1))
+        help_text = node.help
+        if getattr(node, "default", None):
+            help_text = (help_text + " " if help_text else "") + f"(default: {node.default})"
+        if help_text:
+            help_lines = self._wrap_help(help_text, root_cli.max_width - (max_start + 1))
             if root_cli.line_connect:
                 label.append(Text("─" * (padding + 1), style=root_cli.colors.connector))
                 label.append(help_lines[0], style=help_style)
