@@ -518,8 +518,15 @@ class cli(group):
             if has_json:
                 structure = self.structure_dict()
                 json_str = json.dumps(structure, indent=2)
-                syntax = Syntax(json_str, "json", theme="monokai", line_numbers=False)
-                console.print(syntax)
+                # Highlighted JSON for a human at a TTY; raw JSON when piped or
+                # redirected. rich's Syntax soft-wraps and pads each line to the
+                # console width, which injects stray newlines/spaces and corrupts
+                # the JSON for `jq` and other consumers (notably past ~8 KB).
+                if console.is_terminal:
+                    syntax = Syntax(json_str, "json", theme="monokai", line_numbers=False)
+                    console.print(syntax)
+                else:
+                    print(json_str)
             else:
                 path = []
                 stop_flags = help_flags + verbose_help_flags
